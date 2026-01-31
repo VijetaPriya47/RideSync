@@ -41,6 +41,12 @@ Running a full microservices stack locally consumes significant disk space. If y
     rm -rf web/node_modules web/.next
     ```
 
+
+kind delete cluster --name ride-sharing
+
+
+docker volume prune
+
 ## Deployment with Tilt
 
 Tilt manages the entire lifecycle: building Docker images, loading them into Kind, and deploying Kubernetes manifests.
