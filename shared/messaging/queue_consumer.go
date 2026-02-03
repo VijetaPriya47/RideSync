@@ -5,12 +5,15 @@ import (
 	"log"
 
 	"ride-sharing/shared/contracts"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type QueueConsumer struct {
 	rb        *RabbitMQ
 	connMgr   *ConnectionManager
 	queueName string
+	channel   *amqp.Channel
 }
 
 func NewQueueConsumer(rb *RabbitMQ, connMgr *ConnectionManager, queueName string) *QueueConsumer {
@@ -22,7 +25,16 @@ func NewQueueConsumer(rb *RabbitMQ, connMgr *ConnectionManager, queueName string
 }
 
 func (qc *QueueConsumer) Start() error {
-	msgs, err := qc.rb.Channel.Consume(
+	// Create a dedicated channel for this consumer
+	// This prevents concurrent access issues with shared channels
+	ch, err := qc.rb.Conn.Channel()
+	if err != nil {
+		log.Printf("Failed to create channel for queue %s: %v", qc.queueName, err)
+		return err
+	}
+	qc.channel = ch
+
+	msgs, err := qc.channel.Consume(
 		qc.queueName,
 		"",
 		true,
@@ -32,10 +44,13 @@ func (qc *QueueConsumer) Start() error {
 		nil,
 	)
 	if err != nil {
+		qc.channel.Close()
 		return err
 	}
 
 	go func() {
+		defer qc.channel.Close()
+		
 		for msg := range msgs {
 			var msgBody contracts.AmqpMessage
 			if err := json.Unmarshal(msg.Body, &msgBody); err != nil {

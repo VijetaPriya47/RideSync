@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:5.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=ride-sharing
+    volumes:
+      - mongodb_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.35
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infra/development/docker/api-gateway.Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8081:8081"
+    environment:
+      - HTTP_ADDR=:8081
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - ENVIRONMENT=development
+    depends_on:
+      - rabbitmq
+      - jaeger
+
+  trip-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/trip-service.Dockerfile
+    container_name: trip-service
+    ports:
+      - "9093:9093"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/ride-sharing
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - OSRM_API=http://router.project-osrm.org
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - ENVIRONMENT=development
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - jaeger
+
+  driver-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/driver-service.Dockerfile
+    container_name: driver-service
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/ride-sharing
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - ENVIRONMENT=development
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - jaeger
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/payment-service.Dockerfile
+    container_name: payment-service
+    environment:
+      - STRIPE_SECRET_KEY=<STRIPE_SECRET_KEY>
+      - STRIPE_WEBHOOK_KEY=<STRIPE_WEBHOOK_KEY>
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - ENVIRONMENT=development
+    depends_on:
+      - rabbitmq
+      - jaeger
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/development/docker/web.Dockerfile
+    container_name: web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
+    depends_on:
+      - api-gateway
+
+volumes:
+  mongodb_data:

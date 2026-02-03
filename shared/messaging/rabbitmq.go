@@ -18,7 +18,7 @@ const (
 )
 
 type RabbitMQ struct {
-	conn    *amqp.Connection
+	Conn    *amqp.Connection
 	Channel *amqp.Channel
 }
 
@@ -35,7 +35,7 @@ func NewRabbitMQ(uri string) (*RabbitMQ, error) {
 	}
 
 	rmq := &RabbitMQ{
-		conn:    conn,
+		Conn:    conn,
 		Channel: ch,
 	}
 
@@ -321,8 +321,8 @@ func (r *RabbitMQ) declareAndBindQueue(queueName string, messageTypes []string, 
 }
 
 func (r *RabbitMQ) Close() {
-	if r.conn != nil {
-		r.conn.Close()
+	if r.Conn != nil {
+		r.Conn.Close()
 	}
 	if r.Channel != nil {
 		r.Channel.Close()
