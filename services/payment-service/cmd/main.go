@@ -15,6 +15,11 @@ import (
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
 	"ride-sharing/shared/tracing"
+	"strings"
+
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	grpcserver "google.golang.org/grpc"
 )
 
 var GrpcAddr = env.GetString("GRPC_ADDR", ":9004")
@@ -85,20 +90,39 @@ func main() {
 	tripConsumer := events.NewTripConsumer(rabbitmq, svc)
 	go tripConsumer.Listen()
 
-	// Start a dummy HTTP server for Render Web Service compatibility
-	go func() {
-		port := os.Getenv("PORT")
-		if port == "" {
-			port = "8080"
+	// Initialize gRPC server (even if we mostly use RabbitMQ, it's good for consistency)
+	grpcServer := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
+
+	// Combine gRPC and HTTP Health Check on the same port
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Payment Service is Healthy"))
+	})
+
+	h2Handler := h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			mux.ServeHTTP(w, r)
 		}
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Payment Service is Healthy"))
-		})
-		log.Printf("Starting health check HTTP server for Render on port %s", port)
-		if err := http.ListenAndServe(":"+port, mux); err != nil {
-			log.Printf("Failed to start health check HTTP server: %v", err)
+	}), &http2.Server{})
+
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: h2Handler,
+	}
+
+	go func() {
+		log.Printf("Starting Multiplexed Server (gRPC + HTTP) on port %s", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("failed to serve: %v", err)
+			cancel()
 		}
 	}()
 
