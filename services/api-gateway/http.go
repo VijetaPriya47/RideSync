@@ -22,9 +22,14 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleTripStart")
 	defer span.End()
 
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
 	var reqBody startTripRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, "failed to parse JSON data", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "failed to parse JSON data")
 		return
 	}
 
@@ -44,7 +49,7 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 	trip, err := tripService.Client.CreateTrip(ctx, reqBody.toProto())
 	if err != nil {
 		log.Printf("DEBUG: gRPC CreateTrip failed: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to start trip: %v", err), http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to start trip: %v", err))
 		return
 	}
 
@@ -57,9 +62,14 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleTripPreview")
 	defer span.End()
 
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
 	var reqBody previewTripRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, "failed to parse JSON data", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "failed to parse JSON data")
 		return
 	}
 
@@ -67,7 +77,7 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 
 	// validation
 	if reqBody.UserID == "" {
-		http.Error(w, "user ID is required", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "user ID is required")
 		return
 	}
 
@@ -85,7 +95,7 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	tripPreview, err := tripService.Client.PreviewTrip(ctx, reqBody.toProto())
 	if err != nil {
 		log.Printf("DEBUG: gRPC PreviewTrip failed: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to preview trip: %v", err), http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to preview trip: %v", err))
 		return
 	}
 
@@ -166,4 +176,14 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 			return
 		}
 	}
+}
+
+func writeJSONError(w http.ResponseWriter, code int, message string) {
+	response := contracts.APIResponse{
+		Error: &contracts.APIError{
+			Message: message,
+			Code:    fmt.Sprintf("%d", code),
+		},
+	}
+	writeJSON(w, code, response)
 }
