@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -83,6 +84,18 @@ func main() {
 	// Trip Consumer
 	tripConsumer := events.NewTripConsumer(rabbitmq, svc)
 	go tripConsumer.Listen()
+
+	// Start a dummy HTTP server for Render Web Service compatibility
+	go func() {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+		log.Printf("Starting dummy HTTP server for Render on port %s", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Printf("Failed to start dummy HTTP server: %v", err)
+		}
+	}()
 
 	// Wait for shutdown signal
 	<-ctx.Done()

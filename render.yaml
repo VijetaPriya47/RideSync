@@ -1,0 +1,123 @@
+services:
+  # API Gateway
+  - type: web
+    name: api-gateway
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: infra/production/docker/api-gateway.Dockerfile
+    repo: https://github.com/VijetaPriya47/Ride-Sharing-Microservices-Backend
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: HTTP_ADDR
+        value: :8081
+      - key: RABBITMQ_URI
+        fromGroup: shared-secrets
+        key: RABBITMQ_URI
+      - key: ENVIRONMENT
+        value: production
+      - key: TRIP_SERVICE_URL
+        value: trip-service:9093
+      - key: DRIVER_SERVICE_URL
+        value: driver-service:9092
+      # Stripe Webhook Key needs to be set in dashboard or group
+      - key: STRIPE_WEBHOOK_KEY
+        sync: false
+      # OTLP Tracing
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_ENDPOINT
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_HEADERS
+      - key: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=api-gateway,deployment.environment=production
+
+  # Trip Service
+  - type: web
+    name: trip-service
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: infra/production/docker/trip-service.Dockerfile
+    envVars:
+      - key: PORT
+        value: 9093
+      - key: RABBITMQ_URI
+        fromGroup: shared-secrets
+        key: RABBITMQ_URI
+      - key: MONGODB_URI
+        fromGroup: shared-secrets
+        key: MONGODB_URI
+      - key: OSRM_API
+        value: http://router.project-osrm.org
+      - key: ENVIRONMENT
+        value: production
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_ENDPOINT
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_HEADERS
+      - key: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=trip-service,deployment.environment=production
+
+  # Driver Service
+  - type: web
+    name: driver-service
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: infra/production/docker/driver-service.Dockerfile
+    envVars:
+      - key: PORT
+        value: 9092
+      - key: RABBITMQ_URI
+        fromGroup: shared-secrets
+        key: RABBITMQ_URI
+      - key: MONGODB_URI
+        fromGroup: shared-secrets
+        key: MONGODB_URI
+      - key: ENVIRONMENT
+        value: production
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_ENDPOINT
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_HEADERS
+      - key: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=driver-service,deployment.environment=production
+
+  # Payment Service
+  - type: web
+    name: payment-service
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: infra/production/docker/payment-service.Dockerfile
+    envVars:
+      - key: RABBITMQ_URI
+        fromGroup: shared-secrets
+        key: RABBITMQ_URI
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_ENDPOINT
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        fromGroup: shared-secrets
+        key: OTEL_EXPORTER_OTLP_HEADERS
+      - key: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=payment-service,deployment.environment=production
+
+envVarGroups:
+  - name: shared-secrets
+    envVars:
+      - key: RABBITMQ_URI
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        sync: false
