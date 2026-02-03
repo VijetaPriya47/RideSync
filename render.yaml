@@ -16,9 +16,9 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: TRIP_SERVICE_URL
-        value: trip-service:8080
+        value: https://trip-service-q6cb.onrender.com:443
       - key: DRIVER_SERVICE_URL
-        value: driver-service:8080
+        value: https://driver-service-5n8z.onrender.com:443
       # Stripe Webhook Key needs to be set in dashboard or group
       - key: STRIPE_WEBHOOK_KEY
         sync: false

@@ -1,12 +1,14 @@
 package grpc_clients
 
 import (
+	"log"
 	"os"
 	pb "ride-sharing/shared/proto/driver"
 	"ride-sharing/shared/tracing"
 	"strings"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -18,17 +20,26 @@ type driverServiceClient struct {
 func NewDriverServiceClient() (*driverServiceClient, error) {
 	driverServiceURL := os.Getenv("DRIVER_SERVICE_URL")
 	if driverServiceURL == "" {
-		driverServiceURL = "driver-service:9092"
+		driverServiceURL = "driver-service:8080"
 	}
 
-	dialOptions := append(
-		tracing.DialOptionsWithTracing(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-
-	if !strings.HasPrefix(driverServiceURL, "dns:///") {
-		driverServiceURL = "dns:///" + driverServiceURL
+	var dialOptions []grpc.DialOption
+	if strings.HasPrefix(driverServiceURL, "https://") {
+		// Use TLS for HTTPS URLs (Render public endpoints)
+		driverServiceURL = strings.TrimPrefix(driverServiceURL, "https://")
+		dialOptions = append(
+			tracing.DialOptionsWithTracing(),
+			grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
+		)
+	} else {
+		// Use insecure for internal/local connections
+		dialOptions = append(
+			tracing.DialOptionsWithTracing(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
 	}
+
+	log.Printf("DEBUG: Dialing Driver Service at URL: %s", driverServiceURL)
 
 	conn, err := grpc.NewClient(driverServiceURL, dialOptions...)
 	if err != nil {
