@@ -5,7 +5,7 @@ services:
     runtime: docker
     dockerContext: .
     dockerfilePath: infra/production/docker/api-gateway.Dockerfile
-    repo: https://github.com/VijetaPriya47/Ride-Sharing-Microservices-Backend
+    repo: https://github.com/VijetaPriya47/ResQ
     plan: free
     envVars:
       - fromGroup: shared-secrets
