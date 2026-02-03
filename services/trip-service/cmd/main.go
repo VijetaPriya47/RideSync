@@ -103,9 +103,14 @@ func main() {
 		if port == "" {
 			port = "8080"
 		}
-		log.Printf("Starting dummy HTTP server for Render on port %s", port)
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			log.Printf("Failed to start dummy HTTP server: %v", err)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Trip Service is Healthy"))
+		})
+		log.Printf("Starting health check HTTP server for Render on port %s", port)
+		if err := http.ListenAndServe(":"+port, mux); err != nil {
+			log.Printf("Failed to start health check HTTP server: %v", err)
 		}
 	}()
 
