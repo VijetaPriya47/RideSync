@@ -22,6 +22,11 @@ type Config struct {
 }
 
 func InitTracer(cfg Config) (func(context.Context) error, error) {
+	if cfg.JaegerEndpoint == "" && os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
+		fmt.Println("Tracing disabled: No OTLP endpoint provided.")
+		return func(ctx context.Context) error { return nil }, nil
+	}
+
 	// Exporter
 	traceExporter, err := newExporter(cfg.JaegerEndpoint)
 	if err != nil {

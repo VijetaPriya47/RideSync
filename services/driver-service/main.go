@@ -3,16 +3,19 @@ package main
 import (
 	"context"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
 	"ride-sharing/shared/tracing"
+	"strings"
 	"syscall"
 
 	grpcserver "google.golang.org/grpc"
+
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 var GrpcAddr = env.GetString("GRPC_ADDR", ":9092")
@@ -43,11 +46,6 @@ func main() {
 		cancel()
 	}()
 
-	lis, err := net.Listen("tcp", GrpcAddr)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
 	svc := NewService()
 
 	// RabbitMQ connection
@@ -57,9 +55,7 @@ func main() {
 	}
 	defer rabbitmq.Close()
 
-	log.Println("Starting RabbitMQ connection")
-
-	// Starting the gRPC server
+	// Initialize the gRPC server
 	grpcServer := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	NewGrpcHandler(grpcServer, svc)
 
@@ -70,29 +66,40 @@ func main() {
 		}
 	}()
 
-	log.Printf("Starting gRPC server Driver service on port %s", lis.Addr().String())
+	log.Println("Starting RabbitMQ connection")
+
+	log.Printf("Starting gRPC server Driver service on port %s", GrpcAddr)
+
+	// Combine gRPC and HTTP Health Check on the same port
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Driver Service is Healthy"))
+	})
+
+	h2Handler := h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("Content-Type"), "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			mux.ServeHTTP(w, r)
+		}
+	}), &http2.Server{})
+
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: h2Handler,
+	}
 
 	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
+		log.Printf("Starting Multiplexed Server (gRPC + HTTP) on port %s", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("failed to serve: %v", err)
 			cancel()
-		}
-	}()
-
-	// Start a dummy HTTP server for Render Web Service compatibility
-	go func() {
-		port := os.Getenv("PORT")
-		if port == "" {
-			port = "8080"
-		}
-		mux := http.NewServeMux()
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Driver Service is Healthy"))
-		})
-		log.Printf("Starting health check HTTP server for Render on port %s", port)
-		if err := http.ListenAndServe(":"+port, mux); err != nil {
-			log.Printf("Failed to start health check HTTP server: %v", err)
 		}
 	}()
 
