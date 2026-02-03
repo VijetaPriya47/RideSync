@@ -8,6 +8,7 @@ services:
     repo: https://github.com/VijetaPriya47/Ride-Sharing-Microservices-Backend
     plan: free
     envVars:
+      - fromGroup: shared-secrets
       - key: PORT
         value: 8081
       - key: HTTP_ADDR
@@ -18,14 +19,8 @@ services:
         value: trip-service:9093
       - key: DRIVER_SERVICE_URL
         value: driver-service:9092
-      # Secrets to be entered manually in Dashboard
-      - key: RABBITMQ_URI
-        sync: false
+      # Stripe Webhook Key needs to be set in dashboard or group
       - key: STRIPE_WEBHOOK_KEY
-        sync: false
-      - key: OTEL_EXPORTER_OTLP_ENDPOINT
-        sync: false
-      - key: OTEL_EXPORTER_OTLP_HEADERS
         sync: false
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=api-gateway,deployment.environment=production
@@ -38,21 +33,13 @@ services:
     dockerfilePath: infra/production/docker/trip-service.Dockerfile
     plan: free
     envVars:
+      - fromGroup: shared-secrets
       - key: PORT
         value: 9093
       - key: OSRM_API
         value: http://router.project-osrm.org
       - key: ENVIRONMENT
         value: production
-      # Secrets
-      - key: RABBITMQ_URI
-        sync: false
-      - key: MONGODB_URI
-        sync: false
-      - key: OTEL_EXPORTER_OTLP_ENDPOINT
-        sync: false
-      - key: OTEL_EXPORTER_OTLP_HEADERS
-        sync: false
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=trip-service,deployment.environment=production
 
@@ -64,19 +51,11 @@ services:
     dockerfilePath: infra/production/docker/driver-service.Dockerfile
     plan: free
     envVars:
+      - fromGroup: shared-secrets
       - key: PORT
         value: 9092
       - key: ENVIRONMENT
         value: production
-      # Secrets
-      - key: RABBITMQ_URI
-        sync: false
-      - key: MONGODB_URI
-        sync: false
-      - key: OTEL_EXPORTER_OTLP_ENDPOINT
-        sync: false
-      - key: OTEL_EXPORTER_OTLP_HEADERS
-        sync: false
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=driver-service,deployment.environment=production
 
@@ -88,16 +67,22 @@ services:
     dockerfilePath: infra/production/docker/payment-service.Dockerfile
     plan: free
     envVars:
-      - key: ENVIRONMENT
-        value: production
+      - fromGroup: shared-secrets
       - key: STRIPE_SECRET_KEY
         sync: false
-      # Secrets
+      - key: ENVIRONMENT
+        value: production
+      - key: OTEL_RESOURCE_ATTRIBUTES
+        value: service.name=payment-service,deployment.environment=production
+
+envVarGroups:
+  - name: shared-secrets
+    envVars:
       - key: RABBITMQ_URI
+        sync: false
+      - key: MONGODB_URI
         sync: false
       - key: OTEL_EXPORTER_OTLP_ENDPOINT
         sync: false
       - key: OTEL_EXPORTER_OTLP_HEADERS
         sync: false
-      - key: OTEL_RESOURCE_ATTRIBUTES
-        value: service.name=payment-service,deployment.environment=production
