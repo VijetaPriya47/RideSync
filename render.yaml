@@ -13,7 +13,6 @@ services:
         value: :8081
       - key: RABBITMQ_URI
         fromGroup: shared-secrets
-        key: RABBITMQ_URI
       - key: ENVIRONMENT
         value: production
       - key: TRIP_SERVICE_URL
@@ -26,10 +25,8 @@ services:
       # OTLP Tracing
       - key: OTEL_EXPORTER_OTLP_ENDPOINT
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_ENDPOINT
       - key: OTEL_EXPORTER_OTLP_HEADERS
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_HEADERS
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=api-gateway,deployment.environment=production
 
@@ -44,20 +41,16 @@ services:
         value: 9093
       - key: RABBITMQ_URI
         fromGroup: shared-secrets
-        key: RABBITMQ_URI
       - key: MONGODB_URI
         fromGroup: shared-secrets
-        key: MONGODB_URI
       - key: OSRM_API
         value: http://router.project-osrm.org
       - key: ENVIRONMENT
         value: production
       - key: OTEL_EXPORTER_OTLP_ENDPOINT
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_ENDPOINT
       - key: OTEL_EXPORTER_OTLP_HEADERS
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_HEADERS
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=trip-service,deployment.environment=production
 
@@ -72,18 +65,14 @@ services:
         value: 9092
       - key: RABBITMQ_URI
         fromGroup: shared-secrets
-        key: RABBITMQ_URI
       - key: MONGODB_URI
         fromGroup: shared-secrets
-        key: MONGODB_URI
       - key: ENVIRONMENT
         value: production
       - key: OTEL_EXPORTER_OTLP_ENDPOINT
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_ENDPOINT
       - key: OTEL_EXPORTER_OTLP_HEADERS
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_HEADERS
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=driver-service,deployment.environment=production
 
@@ -96,17 +85,14 @@ services:
     envVars:
       - key: RABBITMQ_URI
         fromGroup: shared-secrets
-        key: RABBITMQ_URI
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: ENVIRONMENT
         value: production
       - key: OTEL_EXPORTER_OTLP_ENDPOINT
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_ENDPOINT
       - key: OTEL_EXPORTER_OTLP_HEADERS
         fromGroup: shared-secrets
-        key: OTEL_EXPORTER_OTLP_HEADERS
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: service.name=payment-service,deployment.environment=production
 
