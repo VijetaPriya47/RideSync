@@ -35,7 +35,9 @@ services:
     envVars:
       - fromGroup: shared-secrets
       - key: PORT
-        value: 9093
+        value: 8080
+      - key: GRPC_ADDR
+        value: :9093
       - key: OSRM_API
         value: http://router.project-osrm.org
       - key: ENVIRONMENT
@@ -53,7 +55,9 @@ services:
     envVars:
       - fromGroup: shared-secrets
       - key: PORT
-        value: 9092
+        value: 8080
+      - key: GRPC_ADDR
+        value: :9092
       - key: ENVIRONMENT
         value: production
       - key: OTEL_RESOURCE_ATTRIBUTES
@@ -68,6 +72,10 @@ services:
     plan: free
     envVars:
       - fromGroup: shared-secrets
+      - key: PORT
+        value: 8080
+      - key: GRPC_ADDR
+        value: :9004
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: ENVIRONMENT

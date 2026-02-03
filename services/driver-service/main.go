@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"ride-sharing/shared/env"
@@ -14,7 +15,7 @@ import (
 	grpcserver "google.golang.org/grpc"
 )
 
-var GrpcAddr = ":9092"
+var GrpcAddr = env.GetString("GRPC_ADDR", ":9092")
 
 func main() {
 	// Initialize Tracing
@@ -75,6 +76,18 @@ func main() {
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Printf("failed to serve: %v", err)
 			cancel()
+		}
+	}()
+
+	// Start a dummy HTTP server for Render Web Service compatibility
+	go func() {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+		log.Printf("Starting dummy HTTP server for Render on port %s", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Printf("Failed to start dummy HTTP server: %v", err)
 		}
 	}()
 
