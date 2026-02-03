@@ -6,6 +6,7 @@ services:
     dockerContext: .
     dockerfilePath: infra/production/docker/api-gateway.Dockerfile
     repo: https://github.com/VijetaPriya47/Ride-Sharing-Microservices-Backend
+    plan: free
     envVars:
       - fromGroup: shared-secrets
       - key: PORT
@@ -30,6 +31,7 @@ services:
     runtime: docker
     dockerContext: .
     dockerfilePath: infra/production/docker/trip-service.Dockerfile
+    plan: free
     envVars:
       - fromGroup: shared-secrets
       - key: PORT
@@ -47,6 +49,7 @@ services:
     runtime: docker
     dockerContext: .
     dockerfilePath: infra/production/docker/driver-service.Dockerfile
+    plan: free
     envVars:
       - fromGroup: shared-secrets
       - key: PORT
@@ -62,6 +65,7 @@ services:
     runtime: docker
     dockerContext: .
     dockerfilePath: infra/production/docker/payment-service.Dockerfile
+    plan: free
     envVars:
       - fromGroup: shared-secrets
       - key: STRIPE_SECRET_KEY
