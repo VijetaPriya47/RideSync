@@ -4,6 +4,7 @@ import (
 	"os"
 	pb "ride-sharing/shared/proto/driver"
 	"ride-sharing/shared/tracing"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,6 +25,10 @@ func NewDriverServiceClient() (*driverServiceClient, error) {
 		tracing.DialOptionsWithTracing(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+
+	if !strings.HasPrefix(driverServiceURL, "dns:///") {
+		driverServiceURL = "dns:///" + driverServiceURL
+	}
 
 	conn, err := grpc.NewClient(driverServiceURL, dialOptions...)
 	if err != nil {

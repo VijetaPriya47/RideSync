@@ -4,6 +4,7 @@ import (
 	"os"
 	pb "ride-sharing/shared/proto/trip"
 	"ride-sharing/shared/tracing"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,6 +25,10 @@ func NewTripServiceClient() (*tripServiceClient, error) {
 		tracing.DialOptionsWithTracing(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+
+	if !strings.HasPrefix(tripServiceURL, "dns:///") {
+		tripServiceURL = "dns:///" + tripServiceURL
+	}
 
 	conn, err := grpc.NewClient(tripServiceURL, dialOptions...)
 	if err != nil {
