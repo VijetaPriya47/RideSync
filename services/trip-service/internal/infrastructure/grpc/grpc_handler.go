@@ -36,11 +36,13 @@ func (h *gRPCHandler) CreateTrip(ctx context.Context, req *pb.CreateTripRequest)
 
 	rideFare, err := h.service.GetAndValidateFare(ctx, fareID, userID)
 	if err != nil {
+		log.Printf("DEBUG: CreateTrip - GetAndValidateFare failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "failed to validate the fare: %v", err)
 	}
 
 	trip, err := h.service.CreateTrip(ctx, rideFare)
 	if err != nil {
+		log.Printf("DEBUG: CreateTrip - service.CreateTrip failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "failed to create the trip: %v", err)
 	}
 
@@ -79,6 +81,7 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 
 	fares, err := h.service.GenerateTripFares(ctx, estimatedFares, userID, route)
 	if err != nil {
+		log.Printf("DEBUG: PreviewTrip - GenerateTripFares failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "failed to generate the ride fares: %v", err)
 	}
 

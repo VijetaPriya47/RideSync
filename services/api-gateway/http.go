@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -42,8 +43,8 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 
 	trip, err := tripService.Client.CreateTrip(ctx, reqBody.toProto())
 	if err != nil {
-		log.Printf("Failed to start a trip: %v", err)
-		http.Error(w, "Failed to start trip", http.StatusInternalServerError)
+		log.Printf("DEBUG: gRPC CreateTrip failed: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to start trip: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -83,8 +84,8 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 
 	tripPreview, err := tripService.Client.PreviewTrip(ctx, reqBody.toProto())
 	if err != nil {
-		log.Printf("Failed to preview a trip: %v", err)
-		http.Error(w, "Failed to preview trip", http.StatusInternalServerError)
+		log.Printf("DEBUG: gRPC PreviewTrip failed: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to preview trip: %v", err), http.StatusInternalServerError)
 		return
 	}
 
