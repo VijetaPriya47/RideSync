@@ -2,6 +2,7 @@ tmp
 .env
 .envrc
 bin/
+Private & Shared
 
 # Logs
 logs
