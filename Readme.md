@@ -1,4 +1,4 @@
-# Ride-Sharing Microservices Platform
+# Hybrid Logistics Engine
 
 A production-oriented microservices architecture for a ride-sharing platform, implementing real-time driver matching, route optimization, and payment processing. Built with Go, gRPC, RabbitMQ, and deployed on Kubernetes.
 
@@ -274,6 +274,7 @@ This project demonstrates practical experience with:
 ---
 
 **Built with**: Go · gRPC · RabbitMQ · MongoDB · Kubernetes · Next.js · TypeScript
+
 
 
 
