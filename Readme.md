@@ -1,5 +1,7 @@
 # Hybrid Logistics Engine
 
+> **Note:** For setup instructions, technology stack, and implementation details, please see the [Technical Assessment](Technical_Assessment.md).
+
 A real-world ride-sharing platform built with modern microservices architecture. Think of it as a simplified Uber backend—connecting riders with drivers in real-time, calculating routes, handling payments, and managing the entire trip lifecycle.
 
 ## 🎯 What This Project Does
@@ -39,14 +41,8 @@ This is the single entry point for all client requests—like a bouncer at a clu
 
 **Why a gateway?** We don't want to expose internal service IP addresses to the public internet. The frontend only needs to know one address, and we get centralized security and monitoring.
 
-**Built with:** Go, WebSocket for real-time updates  
-**What it does:** Routes requests, manages live connections, handles Stripe payment webhooks, CORS handling
-
 #### **Trip Service** - The Brain (gRPC Port 9093)
 This is where the magic happens! When you request a ride, this service figures out the best route using OpenStreetMap data and calculates how much it'll cost based on the vehicle type you choose (SUV, Sedan, Van, or Luxury).
-
-**Built with:** gRPC, MongoDB, RabbitMQ  
-**What it does:** Calculates routes, estimates fares, manages trip lifecycle, stores trip data
 
 <img width="1912" height="1040" alt="Screenshot from 2025-11-12 03-27-53" src="https://github.com/user-attachments/assets/5d825297-ad2a-400e-8ecf-a9fdc0aa60b6" />
 
@@ -61,13 +57,8 @@ Ever wonder what happens if a message fails? We've got Dead Letter Queues (DLQ) 
 #### **Driver Service** - Finding Your Ride (gRPC Port 9092)
 This service keeps track of all available drivers and their locations. When you request a ride, it uses smart geohash indexing to quickly find drivers near you and assigns the trip fairly.
 
-**Built with:** gRPC, geohash for location tracking, RabbitMQ  
-**What it does:** Tracks driver locations, finds nearby drivers, manages trip assignments, handles driver responses
-
 #### **Web Frontend** - What You See (Port 3000)
 A beautiful, responsive web app where you can request rides, see drivers on a map in real-time, and complete payments. Built with modern React and styled with Tailwind CSS.
-
-**Built with:** Next.js 15, React 19, TypeScript, Tailwind CSS, Leaflet maps, Stripe.js
 
 ### The Supporting Cast
 
@@ -84,15 +75,8 @@ Instead of services calling each other directly, they send messages through Rabb
 
 **Why this matters:** In a synchronous system, if the Driver Service goes down for maintenance, trip requests would fail. With message queues, those requests wait in RabbitMQ and get processed when the service comes back online. We trade instant consistency for **eventual consistency**—and that's what makes the system resilient.
 
-Key message queues:
-- `find_available_drivers` - Kicks off the driver search when you request a trip
-- `driver_cmd_trip_request` - Sends trip requests to specific drivers
-- `driver_trip_response` - Drivers accept or decline through this queue
-
 ### Real-Time Updates
 WebSocket connections keep you and your driver in sync. See the driver's location update on the map as they approach, get notified when they arrive, and track your trip in real-time. No need to refresh the page!
-
-**The challenge:** We have an event-driven backend (asynchronous) but need to update the frontend in real-time. WebSockets bridge this gap by letting the server push updates to the client instead of the client constantly polling "Are we there yet?"
 
 ### Smart Pricing
 The system calculates fares based on:
@@ -206,183 +190,6 @@ Not quite! While all microservices are distributed systems, not all distributed 
 - **Goal:** Microservices aim for team agility and independent deployments; distributed systems prioritize performance and reliability
 - **Complexity:** Both are complex, but microservices require more DevOps maturity (API management, service discovery, orchestration)
 
-## 🛠️ Technology Stack
-
-### Backend
-- **Language**: Go 1.23 (goroutines for concurrency, static binary compilation)
-- **Communication**: gRPC with Protocol Buffers, HTTP/REST, WebSocket
-- **Message Broker**: RabbitMQ with AMQP 0.9.1
-- **Database**: MongoDB 7.x with geospatial indexing
-- **Tracing**: OpenTelemetry + Jaeger
-- **Payments**: Stripe API with webhook signature verification
-
-### Frontend
-- **Framework**: Next.js 15 with App Router, React 19
-- **Styling**: Tailwind CSS 3.4, Radix UI components
-- **Maps**: Leaflet 1.9 with React bindings
-- **Geolocation**: Geohash libraries for spatial encoding
-
-### Infrastructure
-- **Containers**: Docker with multi-stage builds
-- **Orchestration**: Kubernetes (deployments, services, configmaps, secrets)
-- **Development**: Tilt for hot reloading and local K8s workflow
-- **Build**: Go modules with vendoring support
-
-## 🚀 Running It Yourself
-
-### What You'll Need
-```bash
-# Install these first:
-- Docker Desktop 4.0+ (for running containers)
-- Go 1.23+ (the programming language)
-- kubectl 1.28+ (for talking to Kubernetes)
-- Tilt 0.33+ (makes development super easy)
-- Minikube (creates a local Kubernetes cluster)
-```
-
-### Let's Get Started!
-```bash
-# 1. Grab the code
-git clone <repository-url>
-cd Ride-Sharing-Microservices-Backend
-
-# 2. Fire up a local Kubernetes cluster
-minikube start --driver=docker --memory=6144 --cpus=4
-
-# 3. Generate the gRPC code from proto files
-make generate-proto
-
-# 4. Start everything with Tilt (this is the magic command!)
-tilt up
-
-# 5. Open these in your browser:
-# - Web app: http://localhost:3000
-# - API Gateway: http://localhost:8081
-# - Jaeger (tracing): http://localhost:16686
-# - RabbitMQ dashboard: http://localhost:15672
-```
-
-### Development Tips
-Tilt watches your files and automatically rebuilds when you make changes. Just edit your code and watch it update! Check the Tilt dashboard at `http://localhost:10350` to see build status and logs.
-
-## 📁 Project Structure
-
-```
-.
-├── services/
-│   ├── api-gateway/          # HTTP/WebSocket gateway
-│   ├── trip-service/         # Trip management (clean architecture)
-│   │   ├── cmd/              # Application entrypoint
-│   │   ├── internal/
-│   │   │   ├── domain/       # Business logic
-│   │   │   ├── infrastructure/ # External integrations
-│   │   │   └── service/      # Application services
-│   │   └── pkg/types/        # Public types
-│   └── driver-service/       # Driver operations
-├── shared/
-│   ├── contracts/            # Shared contracts (AMQP, HTTP, WS)
-│   ├── messaging/            # RabbitMQ client abstraction
-│   ├── proto/                # Generated gRPC code
-│   └── types/                # Common type definitions
-├── web/                      # Next.js frontend
-├── proto/                    # Protocol Buffer definitions
-├── infra/
-│   ├── development/k8s/      # Local K8s manifests
-│   └── production/k8s/       # Production configurations
-└── Tiltfile                  # Development automation
-```
-
-## 🔑 Key Features Implemented
-
-### Trip Management
-- ✅ Route calculation with OSRM API integration
-- ✅ Multi-tier pricing (4 vehicle categories)
-- ✅ Trip state machine (Pending → Driver Assigned → In Progress → Completed)
-- ✅ Real-time trip updates via WebSocket
-- ✅ Fare validation and user ownership checks
-
-### Driver Operations
-- ✅ Geohash-based location indexing
-- ✅ Real-time location updates
-- ✅ Fair dispatch algorithm
-- ✅ Trip acceptance/decline workflow
-- ✅ Driver availability management
-
-### Payment Processing
-- ✅ Stripe Checkout session creation
-- ✅ Webhook signature verification
-- ✅ Payment state tracking
-- ✅ Idempotency handling
-
-### Infrastructure
-- ✅ Distributed tracing with OpenTelemetry
-- ✅ Message durability and reliability
-- ✅ Graceful shutdown handling
-- ✅ Health checks and readiness probes
-- ✅ Hot reloading in development
-
-## 📊 System Characteristics
-
-**Scalability**: Horizontal scaling supported for all services via Kubernetes HPA  
-**Latency**: Trip preview <200ms (including OSRM API), trip creation <100ms  
-**Reliability**: At-least-once message delivery, dead letter queues, retry mechanisms  
-**Observability**: Full request tracing, structured logging, performance metrics
-
-## 🔨 Technical Challenges & Solutions
-
-### Challenge 1: CORS Blocking Frontend-Backend Communication
-
-**The Problem:**  
-The frontend (running on port 3000) couldn't talk to the API Gateway (port 8081) because browsers block cross-origin requests by default for security.
-
-**The Solution:**  
-Implemented custom Go middleware to handle CORS:
-- Responds to preflight OPTIONS requests
-- Sets `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, and `Access-Control-Allow-Headers`
-- Uses `*` for development, but production should use environment-variable-driven origin whitelisting
-
-### Challenge 2: Graceful Shutdowns
-
-**The Problem:**  
-When Tilt auto-reloads or Kubernetes restarts a service, active user connections would get killed mid-request. Users would see hanging connections or lost data—terrible user experience!
-
-**The Solution:**  
-Implemented graceful shutdown pattern in Go:
-```go
-server.Shutdown(context.WithTimeout(context.Background(), 10*time.Second))
-```
-This gives the server 10 seconds to finish processing in-flight requests before shutting down. No more hanging clients!
-
-### Challenge 3: Bridging Async Backend with Sync Frontend
-
-**The Problem:**  
-The backend is event-driven and asynchronous (finding drivers takes time), but users expect immediate feedback. We can't make them wait with a loading spinner for 30 seconds.
-
-**The Solution:**  
-- **Immediate Response:** When a user creates a trip, we immediately return "Trip Created" (HTTP 201)
-- **Background Processing:** The actual driver search happens asynchronously via RabbitMQ
-- **Real-Time Updates:** WebSocket connection pushes updates ("Driver Found!", "Driver Accepted") to the frontend as they happen
-
-This gives users instant feedback while heavy operations run in the background.
-
-### Challenge 4: Maintaining Stateful WebSocket Connections
-
-**The Trade-off:**  
-WebSockets require the server to maintain persistent connections, which is more complex than stateless REST. But it prevents "hanging" HTTP requests and timeouts when backend microservices are slow.
-
-**The Implementation:**  
-- Separate WebSocket endpoints for riders (`/ws/riders`) and drivers (`/ws/drivers`)
-- Connection pooling to manage multiple concurrent connections
-- Heartbeat mechanisms to detect and clean up dead connections
-
-## 🧪 Testing & Quality
-
-- Input validation at API boundaries
-- Fare ownership verification before trip creation
-- Webhook signature validation for security
-- Error handling with exponential backoff
-- Circuit breaker patterns for external services
-
 ## 🎓 What You'll Learn From This Project
 
 Building this project teaches you real-world skills that companies actually use:
@@ -395,33 +202,6 @@ Building this project teaches you real-world skills that companies actually use:
 - **Distributed Tracing** - Debugging complex systems where a single request touches multiple services
 - **Clean Architecture** - Organizing code in a way that's maintainable and testable
 
-## 🔧 Common Issues & Solutions
-
-**"Port already in use" errors**  
-Make sure nothing else is using ports 3000, 8081, 9092, 9093, 5672, 15672, or 16686. You can check with `lsof -i :<port>` and kill the process if needed.
-
-**Docker running out of memory**  
-Go to Docker Desktop settings and bump the memory limit to at least 6GB. Kubernetes needs room to breathe!
-
-**Services crashing or not starting**  
-Check the logs to see what's wrong: `kubectl logs -f deployment/<service-name>`  
-Common culprits: missing environment variables or database connection issues.
-
-**Tilt acting weird**  
-Sometimes it just needs a fresh start: `tilt down` then `tilt up` again.
-
-## 📝 Important Notes
-
-- **OpenStreetMap Routes**: We're using the public OSRM API for route calculations. It's free but rate-limited. For production, you'd want to run your own OSRM server.
-  
-- **Stripe Payments**: You'll need to set up a Stripe account (free for testing) and add your API keys to the Kubernetes secrets. Don't worry, test mode means no real money changes hands!
-
-- **MongoDB**: Currently using an in-memory implementation for local development. For production, you'd use MongoDB Atlas or run your own MongoDB instance.
-
 ---
 
 **Built with ❤️ using**: Go · gRPC · RabbitMQ · MongoDB · Kubernetes · Next.js · TypeScript
-
-
-
-
