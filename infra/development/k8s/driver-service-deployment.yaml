@@ -17,7 +17,7 @@ spec:
           image: ride-sharing/driver-service
           imagePullPolicy: Never
           ports:
-            - containerPort: 9092
+            - containerPort: 8080
           resources:
             requests:
               memory: "64Mi"
@@ -44,8 +44,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 9092
+    - port: 8080
       name: grpc
-      targetPort: 9092
+      targetPort: 8080
   selector:
     app: driver-service

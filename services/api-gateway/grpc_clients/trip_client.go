@@ -18,7 +18,7 @@ type tripServiceClient struct {
 func NewTripServiceClient() (*tripServiceClient, error) {
 	tripServiceURL := os.Getenv("TRIP_SERVICE_URL")
 	if tripServiceURL == "" {
-		tripServiceURL = "trip-service:9093"
+		tripServiceURL = "trip-service:8080"
 	}
 
 	dialOptions := append(

@@ -71,7 +71,7 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	userID := req.GetUserID()
 
 	// CHANGE THE LAST ARG TO "FALSE" if the OSRM API is not working right now
-	route, err := h.service.GetRoute(ctx, pickupCoord, destinationCoord, false)
+	route, err := h.service.GetRoute(ctx, pickupCoord, destinationCoord, true)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Errorf(codes.Internal, "failed to get route: %v", err)

@@ -16,7 +16,7 @@ spec:
         - name: trip-service
           image: ride-sharing/trip-service
           ports:
-            - containerPort: 9093
+            - containerPort: 8080
           resources:
             requests:
               memory: "64Mi"
@@ -55,7 +55,7 @@ spec:
   selector:
     app: trip-service
   ports:
-    - port: 9093
+    - port: 8080
       name: grpc
-      targetPort: 9093
+      targetPort: 8080
   type: ClusterIP
