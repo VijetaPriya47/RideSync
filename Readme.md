@@ -5,6 +5,9 @@
 A real-world ride-sharing platform built with modern microservices architecture. Think of it as a simplified Uber backend—connecting riders with drivers in real-time, calculating routes, handling payments, and managing the entire trip lifecycle.
 
 ## 🎥 Project Demo
+## 🎥 Demo Video
+
+[▶️ Watch the demo](docs/73bcc4b213bf436091b99df93facfa06.mp4)
 
 [![RideSharing – Watch Video](https://cdn.loom.com/sessions/thumbnails/73bcc4b213bf436091b99df93facfa06-00001.png)](https://www.loom.com/share/73bcc4b213bf436091b99df93facfa06)
 
@@ -212,6 +215,7 @@ Building this project teaches you real-world skills that companies actually use:
 ---
 
 **Built with ❤️ using**: Go · gRPC · RabbitMQ · MongoDB · Kubernetes · Next.js · TypeScript
+
 
 
 
