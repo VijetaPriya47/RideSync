@@ -6,8 +6,8 @@ A real-world ride-sharing platform built with modern microservices architecture.
 
 ## 🎥 Project Demo
 
-[![Demo Video](https://cdn.loom.com/sessions/thumbnails/73bcc4b213bf436091b99df93facfa06-with-play.gif)](https://www.loom.com/share/73bcc4b213bf436091b99df93facfa06)
 [![Project Demo](https://cdn.loom.com/sessions/thumbnails/73bcc4b213bf436091b99df93facfa06-with-play.gif)](https://www.loom.com/share/73bcc4b213bf436091b99df93facfa06)
+
 
 
 ## 🎯 What This Project Does
@@ -211,5 +211,6 @@ Building this project teaches you real-world skills that companies actually use:
 ---
 
 **Built with ❤️ using**: Go · gRPC · RabbitMQ · MongoDB · Kubernetes · Next.js · TypeScript
+
 
 
