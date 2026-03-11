@@ -124,7 +124,7 @@ sequenceDiagram
 > **Context Propagation Across Async Boundaries**: The implementation uses custom AMQP header carriers to propagate trace context through RabbitMQ, maintaining trace continuity across asynchronous message flows.
 
 > [!TIP]
-> **Centralized Tracing Package**: All tracing logic is consolidated in [shared/tracing/](file:///home/vijetapriya/ride-sharing-1/shared/tracing) to ensure consistent instrumentation patterns across all services.
+> **Centralized Tracing Package**: All tracing logic is consolidated in [shared/tracing/](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/tree/main/shared/tracing) to ensure consistent instrumentation patterns across all services.
 
 ---
 
@@ -134,10 +134,10 @@ The telemetry implementation is organized into the following modules:
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| Core Tracer | [tracing.go](file:///home/vijetapriya/ride-sharing-1/shared/tracing/tracing.go) | Initializes OTel SDK, Jaeger exporter, and tracer provider |
-| HTTP Instrumentation | [http.go](file:///home/vijetapriya/ride-sharing-1/shared/tracing/http.go) | Wraps HTTP handlers with automatic tracing |
-| gRPC Instrumentation | [grpc.go](file:///home/vijetapriya/ride-sharing-1/shared/tracing/grpc.go) | Provides gRPC interceptors for client/server tracing |
-| RabbitMQ Instrumentation | [rabbitmq.go](file:///home/vijetapriya/ride-sharing-1/shared/tracing/rabbitmq.go) | Custom trace context propagation for async messaging |
+| Core Tracer | [tracing.go](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/shared/tracing/tracing.go) | Initializes OTel SDK, Jaeger exporter, and tracer provider |
+| HTTP Instrumentation | [http.go](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/shared/tracing/http.go) | Wraps HTTP handlers with automatic tracing |
+| gRPC Instrumentation | [grpc.go](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/shared/tracing/grpc.go) | Provides gRPC interceptors for client/server tracing |
+| RabbitMQ Instrumentation | [rabbitmq.go](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/shared/tracing/rabbitmq.go) | Custom trace context propagation for async messaging |
 
 ### Dependencies
 
@@ -165,7 +165,7 @@ Jaeger runs as a unified "all-in-one" deployment providing collection, storage, 
 
 #### Development Environment
 
-[infra/development/k8s/jaeger.yaml](file:///home/vijetapriya/ride-sharing-1/infra/development/k8s/jaeger.yaml):
+[infra/development/k8s/jaeger.yaml](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/infra/development/k8s/jaeger.yaml):
 
 ```yaml
 apiVersion: apps/v1
@@ -212,7 +212,7 @@ spec:
 
 #### Production Environment
 
-[infra/production/k8s/jaeger-deployment.yaml](file:///home/vijetapriya/ride-sharing-1/infra/production/k8s/jaeger-deployment.yaml) adds resource constraints:
+[infra/production/k8s/jaeger-deployment.yaml](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/infra/production/k8s/jaeger-deployment.yaml) adds resource constraints:
 
 ```yaml
 resources:
@@ -242,7 +242,7 @@ resources:
 
 ### Tracer Configuration
 
-The core initialization is handled by [InitTracer](file:///home/vijetapriya/ride-sharing-1/shared/tracing/tracing.go#L22-L41):
+The core initialization is handled by [InitTracer](https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/blob/main/shared/tracing/tracing.go#L22-L41):
 
 ```go
 package tracing

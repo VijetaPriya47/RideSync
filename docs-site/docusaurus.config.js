@@ -52,10 +52,11 @@ const config = {
       ({
         docs: {
           sidebarPath: './sidebars.js',
+          routeBasePath: '/',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+            'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/tree/main/docs-site/',
         },
         blog: {
           showReadingTime: true,
@@ -115,7 +116,7 @@ const config = {
             items: [
               {
                 label: 'Documentation',
-                to: '/docs/intro',
+                to: '/',
               },
             ],
           },

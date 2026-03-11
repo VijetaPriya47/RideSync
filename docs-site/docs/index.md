@@ -2,6 +2,7 @@
 sidebar_position: 1
 id: "intro"
 title: "Introduction"
+slug: /
 ---
 # Hybrid Logistics Engine
 
