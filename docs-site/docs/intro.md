@@ -11,9 +11,10 @@ A real-world ride-sharing platform built with modern microservices architecture.
 
 ## Project Demo
 
-[Watch the demo](https://github.com/user-attachments/assets/73bcc4b213bf436091b99df93facfa06.mp4)
+<iframe src="https://drive.google.com/file/d/1jHZYCv_tlQGjw5cV0MShal-_ezUGujMV/preview" width="100%" height="480" allow="autoplay"></iframe>
 
-[![RideSharing – Watch Video](https://cdn.loom.com/sessions/thumbnails/73bcc4b213bf436091b99df93facfa06-00001.png)](https://www.loom.com/share/73bcc4b213bf436091b99df93facfa06)
+*(If the player doesn't load, you can [view the demo here](https://drive.google.com/file/d/1jHZYCv_tlQGjw5cV0MShal-_ezUGujMV/view?usp=sharing))*
+
 
 
 
