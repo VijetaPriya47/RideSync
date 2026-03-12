@@ -10,6 +10,8 @@ Video demo:
 [https://drive.google.com/file/d/1jHZYCv_tlQGjw5cV0MShal-_ezUGujMV/view](https://drive.google.com/file/d/1jHZYCv_tlQGjw5cV0MShal-_ezUGujMV/view)
 
 ---
+<img width="768" height="601" alt="image" src="https://github.com/user-attachments/assets/6b0c2716-8af0-4bac-bc5a-87ae4a293a23" />
+
 
 # System Overview
 
@@ -21,6 +23,67 @@ The system processes a ride request as follows:
 4. **Driver Service** finds nearby available drivers
 5. **RabbitMQ** coordinates asynchronous events between services
 6. **Payment Service** processes payment after trip completion
+
+---
+## Request Lifecycle
+
+Example: Rider requests a trip
+
+1. Client sends ride request to API Gateway.
+2. API Gateway forwards request to Trip Service.
+3. Trip Service calculates route distance using OSRM.
+4. Trip Service publishes `trip.requested` event to RabbitMQ.
+5. Driver Service consumes the event and searches nearby drivers.
+6. Trip Service updates trip status.
+7. WebSocket sends updates to the rider.
+8. After completion, Payment Service processes payment through Stripe.
+## System Design Considerations
+
+---
+
+### Scalability
+
+Services are independently scalable.
+
+Trip Service handles the highest request volume during ride requests. By isolating it as a separate service, additional instances can be deployed without scaling the entire system.
+
+RabbitMQ queues act as buffers during traffic spikes.
+
+---
+
+### Latency
+
+Low-latency communication between services is achieved using gRPC instead of REST.
+
+Protocol Buffers reduce payload size and provide compile-time schema validation.
+
+---
+
+### Fault Isolation
+
+Failures are isolated through asynchronous messaging.
+
+If a service becomes temporarily unavailable, events remain in RabbitMQ queues until consumers recover.
+
+This prevents cascading service failures.
+
+---
+
+### Data Consistency
+
+The system follows eventual consistency across services.
+
+Each service owns its data store and communicates through events rather than shared databases.
+
+This prevents schema coupling between services.
+
+---
+
+### Horizontal Scaling
+
+Services can be replicated across multiple nodes using Kubernetes.
+
+Stateless services allow load balancing across instances.
 
 ---
 
@@ -329,3 +392,4 @@ This project demonstrates experience with:
 * Payment system integration
 
 ---
+
