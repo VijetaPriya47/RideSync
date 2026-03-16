@@ -104,7 +104,7 @@ const config = {
             label: 'Documentation',
           },
           {
-            href: 'https://github.com/facebook/docusaurus',
+            href: 'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine',
             label: 'GitHub',
             position: 'right',
           },
