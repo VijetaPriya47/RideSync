@@ -123,19 +123,11 @@ const config = {
             ],
           },
           {
-            title: 'Community',
+            title: 'Resources',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
-              },
-              {
-                label: 'X',
-                href: 'https://x.com/docusaurus',
+                label: 'GitHub Repository',
+                href: 'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine',
               },
             ],
           },
@@ -149,7 +141,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Hybrid Logistics Engine. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,
