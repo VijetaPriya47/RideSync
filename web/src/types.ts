@@ -30,6 +30,7 @@ export enum CarPackageSlug {
     SUV = "suv",
     VAN = "van",
     LUXURY = "luxury",
+    CARPOOL = "carpool",
 }
 
 export interface RouteFare {
@@ -39,6 +40,7 @@ export interface RouteFare {
     totalPriceInCents?: number,
     expiresAt: Date,
     route: Route,
+    requestedSeats?: number,
 }
 
 
@@ -49,7 +51,7 @@ export interface HTTPTripStartResponse {
 
 export interface TripPreview {
     tripID: string,
-    route: [number, number][],
+    route: Route,
     rideFares: RouteFare[],
     duration: number,
     distance: number,
@@ -63,4 +65,7 @@ export interface Driver {
     name: string;
     profilePicture: string;
     carPlate: string;
+    capacity?: number;
+    availableSeats?: number;
+    activeTripIds?: string[];
 }

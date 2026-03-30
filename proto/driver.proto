@@ -7,11 +7,14 @@ option go_package = "shared/proto/driver;driver";
 service DriverService {
   rpc RegisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
   rpc UnregisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
+  rpc NotifyTripAccepted(NotifyTripAcceptedRequest) returns (NotifyTripAcceptedResponse);
+  rpc NotifyTripCompleted(NotifyTripCompletedRequest) returns (NotifyTripCompletedResponse);
 }
 
 message RegisterDriverRequest {
   string driverID = 1;
   string packageSlug = 2;
+  int32 capacity = 3;
 }
 
 message RegisterDriverResponse {
@@ -26,9 +29,28 @@ message Driver {
   string geohash = 5;
   string packageSlug = 6;
   Location location = 7;
+  int32 capacity = 8;
+  int32 availableSeats = 9;
+  repeated string activeTripIds = 10;
 }
 
 message Location {
   double latitude = 1;
   double longitude = 2;
 }
+
+message NotifyTripAcceptedRequest {
+  string driverID = 1;
+  string tripID = 2;
+  int32 requestedSeats = 3;
+}
+
+message NotifyTripAcceptedResponse {}
+
+message NotifyTripCompletedRequest {
+  string driverID = 1;
+  string tripID = 2;
+  int32 releasedSeats = 3;
+}
+
+message NotifyTripCompletedResponse {}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"ride-sharing/services/trip-service/internal/infrastructure/driverclient"
 	"ride-sharing/services/trip-service/internal/infrastructure/events"
 	"ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"ride-sharing/services/trip-service/internal/infrastructure/repository"
@@ -74,16 +75,23 @@ func main() {
 
 	publisher := events.NewTripEventPublisher(rabbitmq)
 
-	// Start driver consumer
-	driverConsumer := events.NewDriverConsumer(rabbitmq, svc)
+	var seatSync events.SeatNotifier
+	drvClient, err := driverclient.New()
+	if err != nil {
+		log.Printf("WARN: driver gRPC client: %v (seat sync disabled)", err)
+	} else {
+		defer func() { _ = drvClient.Close() }()
+		seatSync = drvClient
+	}
+
+	driverConsumer := events.NewDriverConsumer(rabbitmq, svc, seatSync)
 	go driverConsumer.Listen()
 
 	// Initialize the gRPC server
 	grpcServer := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	grpc.NewGRPCHandler(grpcServer, svc, publisher)
 
-	// Start payment consumer
-	paymentConsumer := events.NewPaymentConsumer(rabbitmq, svc)
+	paymentConsumer := events.NewPaymentConsumer(rabbitmq, svc, drvClient)
 	go paymentConsumer.Listen()
 
 	log.Printf("Starting gRPC server Trip service on port %s", GrpcAddr)

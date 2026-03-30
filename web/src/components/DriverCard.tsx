@@ -38,6 +38,12 @@ export const DriverCard = ({ driver, packageSlug }: { driver?: Driver | null, pa
             <span className="font-mono">{packageSlug}</span> driver
           </p>
         )}
+
+        {driver.capacity !== undefined && (
+          <p className="text-sm text-gray-500 mt-2">
+            Available Seats: {driver.availableSeats} / {driver.capacity}
+          </p>
+        )}
       </CardContent>
     </Card>
   )

@@ -51,7 +51,15 @@ func (c *tripConsumer) Listen() error {
 }
 
 func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload messaging.TripEventData) error {
-	suitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug)
+	if payload.Trip == nil || payload.Trip.SelectedFare == nil {
+		return nil
+	}
+
+	reqSeats := int32(1)
+	if n := payload.Trip.SelectedFare.GetRequestedSeats(); n > 0 {
+		reqSeats = n
+	}
+	suitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug, reqSeats, payload.Trip.Route)
 
 	log.Printf("Found suitable drivers %v", len(suitableIDs))
 

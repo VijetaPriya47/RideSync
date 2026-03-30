@@ -27,6 +27,8 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
             const Icon = PackagesMeta[fare.packageSlug].icon;
             const price = fare.totalPriceInCents && `$${(fare.totalPriceInCents / 100).toFixed(2)}`
 
+            const isCarpool = fare.packageSlug === 'carpool';
+
             return (
               <div
                 key={fare.id}
@@ -34,7 +36,14 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
                   "flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer",
                   "hover:border-primary hover:bg-primary/5",
                 )}
-                onClick={() => onPackageSelect(fare)}
+                onClick={() => {
+                  if (isCarpool) {
+                     const seats = window.prompt("How many seats do you need?", "1");
+                     if (!seats) return;
+                     fare.requestedSeats = parseInt(seats, 10) || 1;
+                  }
+                  onPackageSelect(fare);
+                }}
               >
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-gray-100 rounded-lg">

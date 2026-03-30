@@ -40,6 +40,8 @@ spec:
                 secretKeyRef:
                   name: external-apis
                   key: osrm
+            - name: DRIVER_SERVICE_URL
+              value: "driver-service:9092"
 
             - name: JAEGER_ENDPOINT
               valueFrom:

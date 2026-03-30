@@ -60,10 +60,12 @@ services:
       - OSRM_API=http://router.project-osrm.org
       - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - ENVIRONMENT=development
+      - DRIVER_SERVICE_URL=driver-service:8080
     depends_on:
       - mongodb
       - rabbitmq
       - jaeger
+      - driver-service
 
   driver-service:
     build:

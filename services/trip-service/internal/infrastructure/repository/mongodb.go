@@ -113,3 +113,39 @@ func (r *mongoRepository) GetRideFareByID(ctx context.Context, id string) (*doma
 
 	return &fare, nil
 }
+
+func (r *mongoRepository) UpdateRideFareTotal(ctx context.Context, fareID string, totalPriceInCents float64) error {
+	_id, err := primitive.ObjectIDFromHex(fareID)
+	if err != nil {
+		return err
+	}
+
+	res, err := r.db.Collection(db.RideFaresCollection).UpdateOne(ctx, bson.M{"_id": _id}, bson.M{
+		"$set": bson.M{"totalPriceInCents": totalPriceInCents},
+	})
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("ride fare not found: %s", fareID)
+	}
+	return nil
+}
+
+func (r *mongoRepository) UpdateTripRideFareTotal(ctx context.Context, tripID string, totalPriceInCents float64) error {
+	_id, err := primitive.ObjectIDFromHex(tripID)
+	if err != nil {
+		return err
+	}
+
+	res, err := r.db.Collection(db.TripsCollection).UpdateOne(ctx, bson.M{"_id": _id}, bson.M{
+		"$set": bson.M{"rideFare.totalPriceInCents": totalPriceInCents},
+	})
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("trip not found: %s", tripID)
+	}
+	return nil
+}

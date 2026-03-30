@@ -27,6 +27,11 @@ export const DriverTripOverview = ({ trip, status, onAcceptTrip, onDeclineTrip }
         description="A trip has been requested, check the route and accept the trip if you can take it."
       >
         <div className="flex flex-col gap-2">
+          {trip.selectedFare?.packageSlug === 'carpool' && (
+            <p className="text-sm font-medium text-blue-600 mb-2">
+              Carpool Request: {trip.selectedFare.requestedSeats || 1} seat(s)
+            </p>
+          )}
           <Button onClick={onAcceptTrip}>Accept trip</Button>
           <Button variant="outline" onClick={onDeclineTrip}>Decline trip</Button>
         </div>
@@ -47,6 +52,12 @@ export const DriverTripOverview = ({ trip, status, onAcceptTrip, onDeclineTrip }
               Trip ID: {trip.id}
               <br />
               Rider ID: {trip.userID}
+              {trip.selectedFare?.requestedSeats && (
+                <>
+                  <br />
+                  Requested Seats: {trip.selectedFare.requestedSeats}
+                </>
+              )}
             </p>
           </div>
         </div>

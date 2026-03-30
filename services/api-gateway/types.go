@@ -6,9 +6,10 @@ import (
 )
 
 type previewTripRequest struct {
-	UserID      string           `json:"userID"`
-	Pickup      types.Coordinate `json:"pickup"`
-	Destination types.Coordinate `json:"destination"`
+	UserID          string           `json:"userID"`
+	Pickup          types.Coordinate `json:"pickup"`
+	Destination     types.Coordinate `json:"destination"`
+	RequestedSeats  int32            `json:"requestedSeats,omitempty"`
 }
 
 func (p *previewTripRequest) toProto() *pb.PreviewTripRequest {
@@ -22,6 +23,7 @@ func (p *previewTripRequest) toProto() *pb.PreviewTripRequest {
 			Latitude:  p.Destination.Latitude,
 			Longitude: p.Destination.Longitude,
 		},
+		RequestedSeats: p.RequestedSeats,
 	}
 }
 
@@ -34,5 +36,19 @@ func (c *startTripRequest) toProto() *pb.CreateTripRequest {
 	return &pb.CreateTripRequest{
 		RideFareID: c.RideFareID,
 		UserID:     c.UserID,
+	}
+}
+
+type increaseTripFareRequest struct {
+	TripID             string  `json:"tripID"`
+	UserID             string  `json:"userID"`
+	TotalPriceInCents  float64 `json:"totalPriceInCents"`
+}
+
+func (r *increaseTripFareRequest) toProto() *pb.IncreaseTripFareRequest {
+	return &pb.IncreaseTripFareRequest{
+		TripID:            r.TripID,
+		UserID:            r.UserID,
+		TotalPriceInCents: r.TotalPriceInCents,
 	}
 }

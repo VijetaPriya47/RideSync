@@ -12,7 +12,7 @@ import { RouteFare, RequestRideProps, TripPreview, HTTPTripStartResponse } from 
 import { RoutingControl } from "./RoutingControl";
 import { API_URL } from '../constants';
 import { RiderTripOverview } from './RiderTripOverview';
-import { BackendEndpoints, HTTPTripPreviewRequestPayload, HTTPTripPreviewResponse, HTTPTripStartRequestPayload } from '../contracts';
+import { BackendEndpoints, HTTPTripPreviewRequestPayload, HTTPTripPreviewResponse, HTTPTripStartRequestPayload, TripEvents } from '../contracts';
 
 const userMarker = new L.Icon({
     iconUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Map_pin_icon.svg/176px-Map_pin_icon.svg.png",
@@ -49,7 +49,8 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         tripStatus,
         assignedDriver,
         paymentSession,
-        resetTripStatus
+        resetTripStatus,
+        setTripStatus
     } = useRiderStreamConnection(location, userID);
 
     console.log(tripStatus)
@@ -72,12 +73,9 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             })
             console.log(data)
 
-            const parsedRoute = data.route.geometry[0].coordinates
-                .map((coord) => [coord.longitude, coord.latitude] as [number, number])
-
             setTrip({
                 tripID: "",
-                route: parsedRoute,
+                route: data.route,
                 rideFares: data.rideFares,
                 distance: data.route.distance,
                 duration: data.route.duration,
@@ -88,8 +86,8 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         }, 500);
     }
 
-    const requestRidePreview = async (props: RequestRideProps): Promise<HTTPTripPreviewResponse> => {
-        const { pickup, destination } = props
+    const requestRidePreview = async (props: RequestRideProps & { requestedSeats?: number }): Promise<HTTPTripPreviewResponse> => {
+        const { pickup, destination, requestedSeats } = props
         const payload = {
             userID: userID,
             pickup: {
@@ -100,6 +98,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                 latitude: destination[0],
                 longitude: destination[1],
             },
+            requestedSeats: requestedSeats || 1,
         } as HTTPTripPreviewRequestPayload
 
         const response = await fetch(`${API_URL}${BackendEndpoints.PREVIEW_TRIP}`, {
@@ -111,6 +110,11 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     }
 
     const handleStartTrip = async (fare: RouteFare) => {
+        // If it's a carpool fare and seats weren't selected via prompt, default to 1
+        if (fare.packageSlug === 'carpool' && !fare.requestedSeats) {
+             fare.requestedSeats = 1;
+        }
+
         setSelectedCarPackage(fare)
         const payload = {
             rideFareID: fare.id,
@@ -144,6 +148,39 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         setDestination(null)
         resetTripStatus()
     }
+
+    const handleIncreaseFare = async (percentage: number) => {
+        if (!trip?.tripID || !selectedCarPackage || selectedCarPackage.totalPriceInCents === undefined) return;
+        const newPrice = selectedCarPackage.totalPriceInCents * (1 + percentage / 100);
+        
+        const payload = {
+            tripID: trip.tripID,
+            userID: userID,
+            totalPriceInCents: newPrice
+        };
+
+        const response = await fetch(`${API_URL}${BackendEndpoints.INCREASE_TRIP_FARE}`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+            // After successful increase, update the local selected package to reflect new price
+            setSelectedCarPackage({
+                ...selectedCarPackage,
+                totalPriceInCents: newPrice
+            });
+            // Reset status back to Created to restart the timer and waiting screen
+            setTripStatus(TripEvents.Created);
+        } else {
+            alert("Failed to increase fare");
+        }
+    };
+
+    // Watch for seat changes
+    // Removed to fix linter error since requestedSeats was removed from state
+    // and handled directly in the prompt on the DriverList.
 
     if (error) {
         return <div>Error: {error}</div>
@@ -217,7 +254,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                             </Button>
                         </div>
                     )}
-                    {trip && (
+                    {trip?.route && (
                         <RoutingControl route={trip.route} />
                     )}
                     <MapClickHandler onClick={handleMapClick} />
@@ -233,6 +270,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                     paymentSession={paymentSession}
                     onPackageSelect={handleStartTrip}
                     onCancel={handleCancelTrip}
+                    onIncreaseFare={handleIncreaseFare}
                 />
             </div>
         </div>

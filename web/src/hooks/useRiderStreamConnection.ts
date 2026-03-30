@@ -80,5 +80,5 @@ export function useRiderStreamConnection(location: Coordinate, userID: string) {
     setPaymentSession(null);
   }
 
-  return { drivers, assignedDriver, error, tripStatus, paymentSession, resetTripStatus };
+  return { drivers, assignedDriver, error, tripStatus, paymentSession, resetTripStatus, setTripStatus };
 }

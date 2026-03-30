@@ -209,13 +209,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return fmt.Errorf("failed to declare exchange: %s: %v", TripExchange, err)
 	}
 
-	if err := r.declareAndBindQueue(
-		FindAvailableDriversQueue,
-		[]string{
-			contracts.TripEventCreated, contracts.TripEventDriverNotInterested,
-		},
-		TripExchange,
-	); err != nil {
+	if err := r.declareFindAvailableDriversQueue(); err != nil {
 		return err
 	}
 
@@ -284,6 +278,33 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return err
 	}
 
+	return nil
+}
+
+// DriverSearchMessageTTLMs drops unconsumed driver-search jobs after this duration (2 minutes).
+const DriverSearchMessageTTLMs = 120_000
+
+func (r *RabbitMQ) declareFindAvailableDriversQueue() error {
+	args := amqp.Table{
+		"x-dead-letter-exchange": DeadLetterExchange,
+		"x-message-ttl":          int32(DriverSearchMessageTTLMs),
+	}
+	q, err := r.Channel.QueueDeclare(
+		FindAvailableDriversQueue,
+		true,
+		false,
+		false,
+		false,
+		args,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue %s: %v", FindAvailableDriversQueue, err)
+	}
+	for _, msg := range []string{contracts.TripEventCreated, contracts.TripEventDriverNotInterested} {
+		if err := r.Channel.QueueBind(q.Name, msg, TripExchange, false, nil); err != nil {
+			return fmt.Errorf("failed to bind queue %s: %v", FindAvailableDriversQueue, err)
+		}
+	}
 	return nil
 }
 

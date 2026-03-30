@@ -55,19 +55,23 @@ type TripRepository interface {
 	GetRideFareByID(ctx context.Context, id string) (*RideFareModel, error)
 	GetTripByID(ctx context.Context, id string) (*TripModel, error)
 	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
+	UpdateRideFareTotal(ctx context.Context, fareID string, totalPriceInCents float64) error
+	UpdateTripRideFareTotal(ctx context.Context, tripID string, totalPriceInCents float64) error
 }
 
 type TripService interface {
 	CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error)
-	GetRoute(ctx context.Context, pickup, destination *types.Coordinate, useOsrmApi bool) (*tripTypes.OsrmApiResponse, error)
+	GetRoute(ctx context.Context, waypoints []*types.Coordinate, useOsrmApi bool) (*tripTypes.OsrmApiResponse, error)
 	EstimatePackagesPriceWithRoute(route *tripTypes.OsrmApiResponse) []*RideFareModel
 	GenerateTripFares(
 		ctx context.Context,
 		fares []*RideFareModel,
 		userID string,
 		Route *tripTypes.OsrmApiResponse,
+		requestedSeats int32,
 	) ([]*RideFareModel, error)
 	GetAndValidateFare(ctx context.Context, fareID, userID string) (*RideFareModel, error)
 	GetTripByID(ctx context.Context, id string) (*TripModel, error)
 	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
+	IncreaseTripFare(ctx context.Context, tripID, userID string, totalPriceInCents float64) (*TripModel, error)
 }

@@ -64,3 +64,24 @@ func (r *inmemRepository) SaveRideFare(ctx context.Context, f *domain.RideFareMo
 	r.rideFares[f.ID.Hex()] = f
 	return nil
 }
+
+func (r *inmemRepository) UpdateRideFareTotal(ctx context.Context, fareID string, totalPriceInCents float64) error {
+	f, ok := r.rideFares[fareID]
+	if !ok {
+		return fmt.Errorf("ride fare not found: %s", fareID)
+	}
+	f.TotalPriceInCents = totalPriceInCents
+	return nil
+}
+
+func (r *inmemRepository) UpdateTripRideFareTotal(ctx context.Context, tripID string, totalPriceInCents float64) error {
+	trip, ok := r.trips[tripID]
+	if !ok {
+		return fmt.Errorf("trip not found: %s", tripID)
+	}
+	if trip.RideFare == nil {
+		return fmt.Errorf("trip has no fare")
+	}
+	trip.RideFare.TotalPriceInCents = totalPriceInCents
+	return nil
+}

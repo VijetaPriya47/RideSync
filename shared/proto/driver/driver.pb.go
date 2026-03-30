@@ -25,6 +25,7 @@ type RegisterDriverRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DriverID      string                 `protobuf:"bytes,1,opt,name=driverID,proto3" json:"driverID,omitempty"`
 	PackageSlug   string                 `protobuf:"bytes,2,opt,name=packageSlug,proto3" json:"packageSlug,omitempty"`
+	Capacity      int32                  `protobuf:"varint,3,opt,name=capacity,proto3" json:"capacity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -71,6 +72,13 @@ func (x *RegisterDriverRequest) GetPackageSlug() string {
 		return x.PackageSlug
 	}
 	return ""
+}
+
+func (x *RegisterDriverRequest) GetCapacity() int32 {
+	if x != nil {
+		return x.Capacity
+	}
+	return 0
 }
 
 type RegisterDriverResponse struct {
@@ -126,6 +134,9 @@ type Driver struct {
 	Geohash        string                 `protobuf:"bytes,5,opt,name=geohash,proto3" json:"geohash,omitempty"`
 	PackageSlug    string                 `protobuf:"bytes,6,opt,name=packageSlug,proto3" json:"packageSlug,omitempty"`
 	Location       *Location              `protobuf:"bytes,7,opt,name=location,proto3" json:"location,omitempty"`
+	Capacity       int32                  `protobuf:"varint,8,opt,name=capacity,proto3" json:"capacity,omitempty"`
+	AvailableSeats int32                  `protobuf:"varint,9,opt,name=availableSeats,proto3" json:"availableSeats,omitempty"`
+	ActiveTripIds  []string               `protobuf:"bytes,10,rep,name=activeTripIds,proto3" json:"activeTripIds,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -209,6 +220,27 @@ func (x *Driver) GetLocation() *Location {
 	return nil
 }
 
+func (x *Driver) GetCapacity() int32 {
+	if x != nil {
+		return x.Capacity
+	}
+	return 0
+}
+
+func (x *Driver) GetAvailableSeats() int32 {
+	if x != nil {
+		return x.AvailableSeats
+	}
+	return 0
+}
+
+func (x *Driver) GetActiveTripIds() []string {
+	if x != nil {
+		return x.ActiveTripIds
+	}
+	return nil
+}
+
 type Location struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Latitude      float64                `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude,omitempty"`
@@ -261,16 +293,209 @@ func (x *Location) GetLongitude() float64 {
 	return 0
 }
 
+type NotifyTripAcceptedRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	DriverID       string                 `protobuf:"bytes,1,opt,name=driverID,proto3" json:"driverID,omitempty"`
+	TripID         string                 `protobuf:"bytes,2,opt,name=tripID,proto3" json:"tripID,omitempty"`
+	RequestedSeats int32                  `protobuf:"varint,3,opt,name=requestedSeats,proto3" json:"requestedSeats,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *NotifyTripAcceptedRequest) Reset() {
+	*x = NotifyTripAcceptedRequest{}
+	mi := &file_driver_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyTripAcceptedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyTripAcceptedRequest) ProtoMessage() {}
+
+func (x *NotifyTripAcceptedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyTripAcceptedRequest.ProtoReflect.Descriptor instead.
+func (*NotifyTripAcceptedRequest) Descriptor() ([]byte, []int) {
+	return file_driver_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *NotifyTripAcceptedRequest) GetDriverID() string {
+	if x != nil {
+		return x.DriverID
+	}
+	return ""
+}
+
+func (x *NotifyTripAcceptedRequest) GetTripID() string {
+	if x != nil {
+		return x.TripID
+	}
+	return ""
+}
+
+func (x *NotifyTripAcceptedRequest) GetRequestedSeats() int32 {
+	if x != nil {
+		return x.RequestedSeats
+	}
+	return 0
+}
+
+type NotifyTripAcceptedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotifyTripAcceptedResponse) Reset() {
+	*x = NotifyTripAcceptedResponse{}
+	mi := &file_driver_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyTripAcceptedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyTripAcceptedResponse) ProtoMessage() {}
+
+func (x *NotifyTripAcceptedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyTripAcceptedResponse.ProtoReflect.Descriptor instead.
+func (*NotifyTripAcceptedResponse) Descriptor() ([]byte, []int) {
+	return file_driver_proto_rawDescGZIP(), []int{5}
+}
+
+type NotifyTripCompletedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DriverID      string                 `protobuf:"bytes,1,opt,name=driverID,proto3" json:"driverID,omitempty"`
+	TripID        string                 `protobuf:"bytes,2,opt,name=tripID,proto3" json:"tripID,omitempty"`
+	ReleasedSeats int32                  `protobuf:"varint,3,opt,name=releasedSeats,proto3" json:"releasedSeats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotifyTripCompletedRequest) Reset() {
+	*x = NotifyTripCompletedRequest{}
+	mi := &file_driver_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyTripCompletedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyTripCompletedRequest) ProtoMessage() {}
+
+func (x *NotifyTripCompletedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyTripCompletedRequest.ProtoReflect.Descriptor instead.
+func (*NotifyTripCompletedRequest) Descriptor() ([]byte, []int) {
+	return file_driver_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *NotifyTripCompletedRequest) GetDriverID() string {
+	if x != nil {
+		return x.DriverID
+	}
+	return ""
+}
+
+func (x *NotifyTripCompletedRequest) GetTripID() string {
+	if x != nil {
+		return x.TripID
+	}
+	return ""
+}
+
+func (x *NotifyTripCompletedRequest) GetReleasedSeats() int32 {
+	if x != nil {
+		return x.ReleasedSeats
+	}
+	return 0
+}
+
+type NotifyTripCompletedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotifyTripCompletedResponse) Reset() {
+	*x = NotifyTripCompletedResponse{}
+	mi := &file_driver_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotifyTripCompletedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyTripCompletedResponse) ProtoMessage() {}
+
+func (x *NotifyTripCompletedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_driver_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyTripCompletedResponse.ProtoReflect.Descriptor instead.
+func (*NotifyTripCompletedResponse) Descriptor() ([]byte, []int) {
+	return file_driver_proto_rawDescGZIP(), []int{7}
+}
+
 var File_driver_proto protoreflect.FileDescriptor
 
 const file_driver_proto_rawDesc = "" +
 	"\n" +
-	"\fdriver.proto\x12\x06driver\"U\n" +
+	"\fdriver.proto\x12\x06driver\"q\n" +
 	"\x15RegisterDriverRequest\x12\x1a\n" +
 	"\bdriverID\x18\x01 \x01(\tR\bdriverID\x12 \n" +
-	"\vpackageSlug\x18\x02 \x01(\tR\vpackageSlug\"@\n" +
+	"\vpackageSlug\x18\x02 \x01(\tR\vpackageSlug\x12\x1a\n" +
+	"\bcapacity\x18\x03 \x01(\x05R\bcapacity\"@\n" +
 	"\x16RegisterDriverResponse\x12&\n" +
-	"\x06driver\x18\x01 \x01(\v2\x0e.driver.DriverR\x06driver\"\xda\x01\n" +
+	"\x06driver\x18\x01 \x01(\v2\x0e.driver.DriverR\x06driver\"\xc4\x02\n" +
 	"\x06Driver\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
@@ -278,13 +503,29 @@ const file_driver_proto_rawDesc = "" +
 	"\bcarPlate\x18\x04 \x01(\tR\bcarPlate\x12\x18\n" +
 	"\ageohash\x18\x05 \x01(\tR\ageohash\x12 \n" +
 	"\vpackageSlug\x18\x06 \x01(\tR\vpackageSlug\x12,\n" +
-	"\blocation\x18\a \x01(\v2\x10.driver.LocationR\blocation\"D\n" +
+	"\blocation\x18\a \x01(\v2\x10.driver.LocationR\blocation\x12\x1a\n" +
+	"\bcapacity\x18\b \x01(\x05R\bcapacity\x12&\n" +
+	"\x0eavailableSeats\x18\t \x01(\x05R\x0eavailableSeats\x12$\n" +
+	"\ractiveTripIds\x18\n" +
+	" \x03(\tR\ractiveTripIds\"D\n" +
 	"\bLocation\x12\x1a\n" +
 	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
-	"\tlongitude\x18\x02 \x01(\x01R\tlongitude2\xb3\x01\n" +
+	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\"w\n" +
+	"\x19NotifyTripAcceptedRequest\x12\x1a\n" +
+	"\bdriverID\x18\x01 \x01(\tR\bdriverID\x12\x16\n" +
+	"\x06tripID\x18\x02 \x01(\tR\x06tripID\x12&\n" +
+	"\x0erequestedSeats\x18\x03 \x01(\x05R\x0erequestedSeats\"\x1c\n" +
+	"\x1aNotifyTripAcceptedResponse\"v\n" +
+	"\x1aNotifyTripCompletedRequest\x12\x1a\n" +
+	"\bdriverID\x18\x01 \x01(\tR\bdriverID\x12\x16\n" +
+	"\x06tripID\x18\x02 \x01(\tR\x06tripID\x12$\n" +
+	"\rreleasedSeats\x18\x03 \x01(\x05R\rreleasedSeats\"\x1d\n" +
+	"\x1bNotifyTripCompletedResponse2\xf0\x02\n" +
 	"\rDriverService\x12O\n" +
 	"\x0eRegisterDriver\x12\x1d.driver.RegisterDriverRequest\x1a\x1e.driver.RegisterDriverResponse\x12Q\n" +
-	"\x10UnregisterDriver\x12\x1d.driver.RegisterDriverRequest\x1a\x1e.driver.RegisterDriverResponseB\x1cZ\x1ashared/proto/driver;driverb\x06proto3"
+	"\x10UnregisterDriver\x12\x1d.driver.RegisterDriverRequest\x1a\x1e.driver.RegisterDriverResponse\x12[\n" +
+	"\x12NotifyTripAccepted\x12!.driver.NotifyTripAcceptedRequest\x1a\".driver.NotifyTripAcceptedResponse\x12^\n" +
+	"\x13NotifyTripCompleted\x12\".driver.NotifyTripCompletedRequest\x1a#.driver.NotifyTripCompletedResponseB\x1cZ\x1ashared/proto/driver;driverb\x06proto3"
 
 var (
 	file_driver_proto_rawDescOnce sync.Once
@@ -298,22 +539,30 @@ func file_driver_proto_rawDescGZIP() []byte {
 	return file_driver_proto_rawDescData
 }
 
-var file_driver_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_driver_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_driver_proto_goTypes = []any{
-	(*RegisterDriverRequest)(nil),  // 0: driver.RegisterDriverRequest
-	(*RegisterDriverResponse)(nil), // 1: driver.RegisterDriverResponse
-	(*Driver)(nil),                 // 2: driver.Driver
-	(*Location)(nil),               // 3: driver.Location
+	(*RegisterDriverRequest)(nil),       // 0: driver.RegisterDriverRequest
+	(*RegisterDriverResponse)(nil),      // 1: driver.RegisterDriverResponse
+	(*Driver)(nil),                      // 2: driver.Driver
+	(*Location)(nil),                    // 3: driver.Location
+	(*NotifyTripAcceptedRequest)(nil),   // 4: driver.NotifyTripAcceptedRequest
+	(*NotifyTripAcceptedResponse)(nil),  // 5: driver.NotifyTripAcceptedResponse
+	(*NotifyTripCompletedRequest)(nil),  // 6: driver.NotifyTripCompletedRequest
+	(*NotifyTripCompletedResponse)(nil), // 7: driver.NotifyTripCompletedResponse
 }
 var file_driver_proto_depIdxs = []int32{
 	2, // 0: driver.RegisterDriverResponse.driver:type_name -> driver.Driver
 	3, // 1: driver.Driver.location:type_name -> driver.Location
 	0, // 2: driver.DriverService.RegisterDriver:input_type -> driver.RegisterDriverRequest
 	0, // 3: driver.DriverService.UnregisterDriver:input_type -> driver.RegisterDriverRequest
-	1, // 4: driver.DriverService.RegisterDriver:output_type -> driver.RegisterDriverResponse
-	1, // 5: driver.DriverService.UnregisterDriver:output_type -> driver.RegisterDriverResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
+	4, // 4: driver.DriverService.NotifyTripAccepted:input_type -> driver.NotifyTripAcceptedRequest
+	6, // 5: driver.DriverService.NotifyTripCompleted:input_type -> driver.NotifyTripCompletedRequest
+	1, // 6: driver.DriverService.RegisterDriver:output_type -> driver.RegisterDriverResponse
+	1, // 7: driver.DriverService.UnregisterDriver:output_type -> driver.RegisterDriverResponse
+	5, // 8: driver.DriverService.NotifyTripAccepted:output_type -> driver.NotifyTripAcceptedResponse
+	7, // 9: driver.DriverService.NotifyTripCompleted:output_type -> driver.NotifyTripCompletedResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -330,7 +579,7 @@ func file_driver_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_driver_proto_rawDesc), len(file_driver_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

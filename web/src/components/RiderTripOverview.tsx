@@ -8,6 +8,7 @@ import { TripOverviewCard } from "./TripOverviewCard"
 import { StripePaymentButton } from "./StripePaymentButton"
 import { DriverCard } from "./DriverCard"
 import { TripEvents, PaymentEventSessionCreatedData } from "../contracts"
+import { useState, useEffect } from "react"
 
 interface TripOverviewProps {
   trip: TripPreview | null;
@@ -17,6 +18,7 @@ interface TripOverviewProps {
   selectedFare?: RouteFare | null;
   onPackageSelect: (carPackage: RouteFare) => void;
   onCancel: () => void;
+  onIncreaseFare?: (percentage: number) => void;
 }
 
 export const RiderTripOverview = ({
@@ -27,13 +29,56 @@ export const RiderTripOverview = ({
   selectedFare,
   onPackageSelect,
   onCancel,
+  onIncreaseFare,
 }: TripOverviewProps) => {
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [timerEnded, setTimerEnded] = useState(false);
+
+  useEffect(() => {
+    if (status === TripEvents.Created) {
+      setTimeLeft(120);
+      setTimerEnded(false);
+    }
+  }, [status, trip?.tripID]);
+
+  useEffect(() => {
+    if (status === TripEvents.Created && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && status === TripEvents.Created) {
+      setTimerEnded(true);
+    }
+  }, [timeLeft, status]);
+
+  const showIncreasePrompt = status === TripEvents.NoDriversFound || timerEnded;
+
   if (!trip) {
     return (
       <TripOverviewCard
         title="Start a trip"
         description="Click on the map to set a destination"
       />
+    )
+  }
+
+  if (showIncreasePrompt && status !== TripEvents.Completed && status !== TripEvents.Cancelled && status !== TripEvents.DriverAssigned && status !== TripEvents.PaymentSessionCreated) {
+    return (
+      <TripOverviewCard
+        title="No drivers available right now"
+        description="Would you like to increase your fare to attract more drivers?"
+      >
+        <div className="flex flex-col gap-2 mt-4">
+          <Button variant="default" onClick={() => { onIncreaseFare?.(10); setTimerEnded(false); }}>
+            Increase Fare by 10%
+          </Button>
+          <Button variant="default" onClick={() => { onIncreaseFare?.(20); setTimerEnded(false); }}>
+            Increase Fare by 20%
+          </Button>
+          <Button variant="outline" className="w-full" onClick={onCancel}>
+            Cancel Request
+          </Button>
+        </div>
+      </TripOverviewCard>
     )
   }
 
@@ -56,6 +101,8 @@ export const RiderTripOverview = ({
     )
   }
 
+  // Handled by showIncreasePrompt
+  /*
   if (status === TripEvents.NoDriversFound) {
     return (
       <TripOverviewCard
@@ -68,6 +115,7 @@ export const RiderTripOverview = ({
       </TripOverviewCard>
     )
   }
+  */
 
   if (status === TripEvents.DriverAssigned) {
     return (
@@ -122,6 +170,9 @@ export const RiderTripOverview = ({
           <div className="space-y-2">
             <Skeleton className="h-4 w-[250px]" />
             <Skeleton className="h-4 w-[200px]" />
+          </div>
+          <div className="text-sm font-bold mt-2 text-center text-gray-500">
+            Time elapsed: {120 - timeLeft}s / 120s
           </div>
         </div>
 

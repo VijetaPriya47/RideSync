@@ -4,14 +4,13 @@ import { useDriverStreamConnection } from "../hooks/useDriverStreamConnection"
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import L from 'leaflet';
 import { MapClickHandler } from './MapClickHandler';
-import { useMemo, useState } from "react";
-import { useRef } from "react";
 import { CarPackageSlug, Coordinate } from "../types";
 import { DriverTripOverview } from "./DriverTripOverview";
 import * as Geohash from 'ngeohash';
 import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
 import { TripEvents } from "../contracts";
+import { useState, useMemo, useRef } from "react";
 
 const START_LOCATION: Coordinate = {
   latitude: 37.7749,
@@ -107,19 +106,25 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
   console.log({ requestedTrip })
 
-  const parsedRoute = useMemo(() =>
-    requestedTrip?.route?.geometry[0]?.coordinates
-      .map((coord) => [coord?.longitude, coord?.latitude] as [number, number])
-    , [requestedTrip])
-
   // destination is the last coordinate in the route
-  const destination = useMemo(() =>
-    requestedTrip?.route?.geometry[0]?.coordinates[requestedTrip?.route?.geometry[0]?.coordinates?.length - 1]
-    , [requestedTrip])
+  const destination = useMemo(() => {
+    const geoLen = requestedTrip?.route?.geometry?.length || 0;
+    if (geoLen === 0) return null;
+    const coords = requestedTrip?.route?.geometry[geoLen - 1]?.coordinates;
+    if (!coords || coords.length === 0) return null;
+    return coords[coords.length - 1];
+  }, [requestedTrip])
+
   // start location is the first coordinate in the route
-  const startLocation = useMemo(() =>
-    requestedTrip?.route?.geometry[0]?.coordinates[0]
-    , [requestedTrip])
+  const startLocation = useMemo(() => {
+    const coords = requestedTrip?.route?.geometry?.[0]?.coordinates;
+    if (!coords || coords.length === 0) return null;
+    return coords[0];
+  }, [requestedTrip])
+
+  // Get active trip details for carpool rendering
+  const activeTripIds = useMemo(() => driver?.activeTripIds || [], [driver]);
+  const isCarpool = packageSlug === CarPackageSlug.CARPOOL;
 
 
   if (error) {
@@ -164,8 +169,17 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
             </Marker>
           )}
 
-          {parsedRoute && (
-            <RoutingControl route={parsedRoute} />
+          {isCarpool && activeTripIds.length > 0 && (
+            <Marker position={[riderLocation.latitude, riderLocation.longitude]} icon={driverMarker}>
+               <Popup>
+                 Active Carpool Trips: {activeTripIds.length} <br/>
+                 Available Seats: {driver?.availableSeats}
+               </Popup>
+            </Marker>
+          )}
+
+          {requestedTrip?.route && (
+            <RoutingControl route={requestedTrip.route} />
           )}
 
           <MapClickHandler onClick={handleMapClick} />

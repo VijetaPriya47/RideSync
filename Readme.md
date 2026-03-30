@@ -116,6 +116,8 @@ Responsibilities:
 * Fare estimation
 * Trip state management
 
+**Environment:** `DRIVER_SERVICE_URL` must point at the Driver Service gRPC endpoint (host:port as used inside the cluster or Docker network), for example `driver-service:8080` in local Compose / dev Kubernetes, or `driver-service:9092` where production manifests expose that port. If unset, a default may work in some environments but should be set explicitly for carpool seat sync.
+
 ---
 
 ### Driver Service (gRPC : 9092)
@@ -171,6 +173,8 @@ Includes:
 * Retry logic
 * Dead letter queues (DLQ)
 * At-least-once delivery handling
+
+The **`find_available_drivers`** queue uses a **message TTL** (2 minutes). Messages that are not consumed in that window expire into the DLQ; the API Gateway turns those into a **no drivers found** signal to the rider. **If you upgrade an existing RabbitMQ deployment**, delete the old `find_available_drivers` queue once so it can be recreated with TTL arguments (RabbitMQ does not patch queue options in place).
 
 ---
 

@@ -10,17 +10,22 @@ import (
 type RideFareModel struct {
 	ID                primitive.ObjectID     `bson:"_id,omitempty"`
 	UserID            string                 `bson:"userID"`
-	PackageSlug       string                 `bson:"packageSlug"` // ex: van, luxury, sedan
+	PackageSlug       string                 `bson:"packageSlug"` // ex: van, luxury, sedan, carpool
 	TotalPriceInCents float64                `bson:"totalPriceInCents"`
+	RequestedSeats    int32                  `bson:"requestedSeats"`
 	Route             *types.OsrmApiResponse `bson:"route"`
 }
 
 func (r *RideFareModel) ToProto() *pb.RideFare {
+	if r == nil {
+		return nil
+	}
 	return &pb.RideFare{
 		Id:                r.ID.Hex(),
 		UserID:            r.UserID,
 		PackageSlug:       r.PackageSlug,
 		TotalPriceInCents: r.TotalPriceInCents,
+		RequestedSeats:    r.RequestedSeats,
 	}
 }
 

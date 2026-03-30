@@ -22,12 +22,13 @@ const (
 )
 
 type PreviewTripRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserID        string                 `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
-	StartLocation *Coordinate            `protobuf:"bytes,2,opt,name=startLocation,proto3" json:"startLocation,omitempty"`
-	EndLocation   *Coordinate            `protobuf:"bytes,3,opt,name=endLocation,proto3" json:"endLocation,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserID         string                 `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
+	StartLocation  *Coordinate            `protobuf:"bytes,2,opt,name=startLocation,proto3" json:"startLocation,omitempty"`
+	EndLocation    *Coordinate            `protobuf:"bytes,3,opt,name=endLocation,proto3" json:"endLocation,omitempty"`
+	RequestedSeats int32                  `protobuf:"varint,4,opt,name=requestedSeats,proto3" json:"requestedSeats,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PreviewTripRequest) Reset() {
@@ -79,6 +80,13 @@ func (x *PreviewTripRequest) GetEndLocation() *Coordinate {
 		return x.EndLocation
 	}
 	return nil
+}
+
+func (x *PreviewTripRequest) GetRequestedSeats() int32 {
+	if x != nil {
+		return x.RequestedSeats
+	}
+	return 0
 }
 
 type PreviewTripResponse struct {
@@ -303,6 +311,7 @@ type RideFare struct {
 	UserID            string                 `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
 	PackageSlug       string                 `protobuf:"bytes,3,opt,name=packageSlug,proto3" json:"packageSlug,omitempty"`
 	TotalPriceInCents float64                `protobuf:"fixed64,4,opt,name=totalPriceInCents,proto3" json:"totalPriceInCents,omitempty"`
+	RequestedSeats    int32                  `protobuf:"varint,5,opt,name=requestedSeats,proto3" json:"requestedSeats,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -361,6 +370,13 @@ func (x *RideFare) GetPackageSlug() string {
 func (x *RideFare) GetTotalPriceInCents() float64 {
 	if x != nil {
 		return x.TotalPriceInCents
+	}
+	return 0
+}
+
+func (x *RideFare) GetRequestedSeats() int32 {
+	if x != nil {
+		return x.RequestedSeats
 	}
 	return 0
 }
@@ -553,7 +569,6 @@ func (x *Trip) GetDriver() *TripDriver {
 	return nil
 }
 
-// Static driver object that is used to store the driver information
 type TripDriver struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -622,16 +637,121 @@ func (x *TripDriver) GetCarPlate() string {
 	return ""
 }
 
+type IncreaseTripFareRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	TripID            string                 `protobuf:"bytes,1,opt,name=tripID,proto3" json:"tripID,omitempty"`
+	UserID            string                 `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
+	TotalPriceInCents float64                `protobuf:"fixed64,3,opt,name=totalPriceInCents,proto3" json:"totalPriceInCents,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *IncreaseTripFareRequest) Reset() {
+	*x = IncreaseTripFareRequest{}
+	mi := &file_trip_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncreaseTripFareRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncreaseTripFareRequest) ProtoMessage() {}
+
+func (x *IncreaseTripFareRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trip_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncreaseTripFareRequest.ProtoReflect.Descriptor instead.
+func (*IncreaseTripFareRequest) Descriptor() ([]byte, []int) {
+	return file_trip_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *IncreaseTripFareRequest) GetTripID() string {
+	if x != nil {
+		return x.TripID
+	}
+	return ""
+}
+
+func (x *IncreaseTripFareRequest) GetUserID() string {
+	if x != nil {
+		return x.UserID
+	}
+	return ""
+}
+
+func (x *IncreaseTripFareRequest) GetTotalPriceInCents() float64 {
+	if x != nil {
+		return x.TotalPriceInCents
+	}
+	return 0
+}
+
+type IncreaseTripFareResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Trip          *Trip                  `protobuf:"bytes,1,opt,name=trip,proto3" json:"trip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncreaseTripFareResponse) Reset() {
+	*x = IncreaseTripFareResponse{}
+	mi := &file_trip_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncreaseTripFareResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncreaseTripFareResponse) ProtoMessage() {}
+
+func (x *IncreaseTripFareResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trip_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncreaseTripFareResponse.ProtoReflect.Descriptor instead.
+func (*IncreaseTripFareResponse) Descriptor() ([]byte, []int) {
+	return file_trip_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *IncreaseTripFareResponse) GetTrip() *Trip {
+	if x != nil {
+		return x.Trip
+	}
+	return nil
+}
+
 var File_trip_proto protoreflect.FileDescriptor
 
 const file_trip_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"trip.proto\x12\x04trip\"\x98\x01\n" +
+	"trip.proto\x12\x04trip\"\xc0\x01\n" +
 	"\x12PreviewTripRequest\x12\x16\n" +
 	"\x06userID\x18\x01 \x01(\tR\x06userID\x126\n" +
 	"\rstartLocation\x18\x02 \x01(\v2\x10.trip.CoordinateR\rstartLocation\x122\n" +
-	"\vendLocation\x18\x03 \x01(\v2\x10.trip.CoordinateR\vendLocation\"~\n" +
+	"\vendLocation\x18\x03 \x01(\v2\x10.trip.CoordinateR\vendLocation\x12&\n" +
+	"\x0erequestedSeats\x18\x04 \x01(\x05R\x0erequestedSeats\"~\n" +
 	"\x13PreviewTripResponse\x12\x16\n" +
 	"\x06tripID\x18\x01 \x01(\tR\x06tripID\x12!\n" +
 	"\x05route\x18\x02 \x01(\v2\v.trip.RouteR\x05route\x12,\n" +
@@ -645,12 +765,13 @@ const file_trip_proto_rawDesc = "" +
 	"\x05Route\x12*\n" +
 	"\bgeometry\x18\x01 \x03(\v2\x0e.trip.GeometryR\bgeometry\x12\x1a\n" +
 	"\bdistance\x18\x02 \x01(\x01R\bdistance\x12\x1a\n" +
-	"\bduration\x18\x03 \x01(\x01R\bduration\"\x82\x01\n" +
+	"\bduration\x18\x03 \x01(\x01R\bduration\"\xaa\x01\n" +
 	"\bRideFare\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06userID\x18\x02 \x01(\tR\x06userID\x12 \n" +
 	"\vpackageSlug\x18\x03 \x01(\tR\vpackageSlug\x12,\n" +
-	"\x11totalPriceInCents\x18\x04 \x01(\x01R\x11totalPriceInCents\"K\n" +
+	"\x11totalPriceInCents\x18\x04 \x01(\x01R\x11totalPriceInCents\x12&\n" +
+	"\x0erequestedSeats\x18\x05 \x01(\x05R\x0erequestedSeats\"K\n" +
 	"\x11CreateTripRequest\x12\x1e\n" +
 	"\n" +
 	"rideFareID\x18\x01 \x01(\tR\n" +
@@ -672,11 +793,19 @@ const file_trip_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
 	"\x0eprofilePicture\x18\x03 \x01(\tR\x0eprofilePicture\x12\x1a\n" +
-	"\bcarPlate\x18\x04 \x01(\tR\bcarPlate2\x92\x01\n" +
+	"\bcarPlate\x18\x04 \x01(\tR\bcarPlate\"w\n" +
+	"\x17IncreaseTripFareRequest\x12\x16\n" +
+	"\x06tripID\x18\x01 \x01(\tR\x06tripID\x12\x16\n" +
+	"\x06userID\x18\x02 \x01(\tR\x06userID\x12,\n" +
+	"\x11totalPriceInCents\x18\x03 \x01(\x01R\x11totalPriceInCents\":\n" +
+	"\x18IncreaseTripFareResponse\x12\x1e\n" +
+	"\x04trip\x18\x01 \x01(\v2\n" +
+	".trip.TripR\x04trip2\xe5\x01\n" +
 	"\vTripService\x12B\n" +
 	"\vPreviewTrip\x12\x18.trip.PreviewTripRequest\x1a\x19.trip.PreviewTripResponse\x12?\n" +
 	"\n" +
-	"CreateTrip\x12\x17.trip.CreateTripRequest\x1a\x18.trip.CreateTripResponseB\x18Z\x16shared/proto/trip;tripb\x06proto3"
+	"CreateTrip\x12\x17.trip.CreateTripRequest\x1a\x18.trip.CreateTripResponse\x12Q\n" +
+	"\x10IncreaseTripFare\x12\x1d.trip.IncreaseTripFareRequest\x1a\x1e.trip.IncreaseTripFareResponseB\x18Z\x16shared/proto/trip;tripb\x06proto3"
 
 var (
 	file_trip_proto_rawDescOnce sync.Once
@@ -690,18 +819,20 @@ func file_trip_proto_rawDescGZIP() []byte {
 	return file_trip_proto_rawDescData
 }
 
-var file_trip_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_trip_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_trip_proto_goTypes = []any{
-	(*PreviewTripRequest)(nil),  // 0: trip.PreviewTripRequest
-	(*PreviewTripResponse)(nil), // 1: trip.PreviewTripResponse
-	(*Coordinate)(nil),          // 2: trip.Coordinate
-	(*Geometry)(nil),            // 3: trip.Geometry
-	(*Route)(nil),               // 4: trip.Route
-	(*RideFare)(nil),            // 5: trip.RideFare
-	(*CreateTripRequest)(nil),   // 6: trip.CreateTripRequest
-	(*CreateTripResponse)(nil),  // 7: trip.CreateTripResponse
-	(*Trip)(nil),                // 8: trip.Trip
-	(*TripDriver)(nil),          // 9: trip.TripDriver
+	(*PreviewTripRequest)(nil),       // 0: trip.PreviewTripRequest
+	(*PreviewTripResponse)(nil),      // 1: trip.PreviewTripResponse
+	(*Coordinate)(nil),               // 2: trip.Coordinate
+	(*Geometry)(nil),                 // 3: trip.Geometry
+	(*Route)(nil),                    // 4: trip.Route
+	(*RideFare)(nil),                 // 5: trip.RideFare
+	(*CreateTripRequest)(nil),        // 6: trip.CreateTripRequest
+	(*CreateTripResponse)(nil),       // 7: trip.CreateTripResponse
+	(*Trip)(nil),                     // 8: trip.Trip
+	(*TripDriver)(nil),               // 9: trip.TripDriver
+	(*IncreaseTripFareRequest)(nil),  // 10: trip.IncreaseTripFareRequest
+	(*IncreaseTripFareResponse)(nil), // 11: trip.IncreaseTripFareResponse
 }
 var file_trip_proto_depIdxs = []int32{
 	2,  // 0: trip.PreviewTripRequest.startLocation:type_name -> trip.Coordinate
@@ -714,15 +845,18 @@ var file_trip_proto_depIdxs = []int32{
 	5,  // 7: trip.Trip.selectedFare:type_name -> trip.RideFare
 	4,  // 8: trip.Trip.route:type_name -> trip.Route
 	9,  // 9: trip.Trip.driver:type_name -> trip.TripDriver
-	0,  // 10: trip.TripService.PreviewTrip:input_type -> trip.PreviewTripRequest
-	6,  // 11: trip.TripService.CreateTrip:input_type -> trip.CreateTripRequest
-	1,  // 12: trip.TripService.PreviewTrip:output_type -> trip.PreviewTripResponse
-	7,  // 13: trip.TripService.CreateTrip:output_type -> trip.CreateTripResponse
-	12, // [12:14] is the sub-list for method output_type
-	10, // [10:12] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	8,  // 10: trip.IncreaseTripFareResponse.trip:type_name -> trip.Trip
+	0,  // 11: trip.TripService.PreviewTrip:input_type -> trip.PreviewTripRequest
+	6,  // 12: trip.TripService.CreateTrip:input_type -> trip.CreateTripRequest
+	10, // 13: trip.TripService.IncreaseTripFare:input_type -> trip.IncreaseTripFareRequest
+	1,  // 14: trip.TripService.PreviewTrip:output_type -> trip.PreviewTripResponse
+	7,  // 15: trip.TripService.CreateTrip:output_type -> trip.CreateTripResponse
+	11, // 16: trip.TripService.IncreaseTripFare:output_type -> trip.IncreaseTripFareResponse
+	14, // [14:17] is the sub-list for method output_type
+	11, // [11:14] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_trip_proto_init() }
@@ -736,7 +870,7 @@ func file_trip_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trip_proto_rawDesc), len(file_trip_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

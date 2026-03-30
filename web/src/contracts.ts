@@ -4,6 +4,7 @@ import { Coordinate, Driver, Route, RouteFare, Trip } from "./types";
 export enum BackendEndpoints {
   PREVIEW_TRIP = "/trip/preview",
   START_TRIP = "/trip/start",
+  INCREASE_TRIP_FARE = "/trip/increase-fare",
   WS_DRIVERS = "/drivers",
   WS_RIDERS = "/riders",
 }
@@ -98,6 +99,8 @@ export interface HTTPTripPreviewRequestPayload {
   userID: string;
   pickup: Coordinate;
   destination: Coordinate;
+  /** Seats for carpool-style fares; defaults to 1 if omitted */
+  requestedSeats?: number;
 }
 
 export function isValidTripEvent(event: string): event is TripEvents {

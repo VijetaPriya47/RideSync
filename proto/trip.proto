@@ -7,12 +7,14 @@ option go_package = "shared/proto/trip;trip";
 service TripService {
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
   rpc CreateTrip(CreateTripRequest) returns (CreateTripResponse);
+  rpc IncreaseTripFare(IncreaseTripFareRequest) returns (IncreaseTripFareResponse);
 }
 
 message PreviewTripRequest {
   string userID = 1;
   Coordinate startLocation = 2;
   Coordinate endLocation = 3;
+  int32 requestedSeats = 4;
 }
 
 message PreviewTripResponse {
@@ -41,6 +43,7 @@ message RideFare {
   string userID = 2;
   string packageSlug = 3;
   double totalPriceInCents = 4;
+  int32 requestedSeats = 5;
 }
 
 message CreateTripRequest {
@@ -62,10 +65,19 @@ message Trip {
   TripDriver driver = 6;
 }
 
-// Static driver object that is used to store the driver information
 message TripDriver {
   string id = 1;
   string name = 2;
   string profilePicture = 3;
   string carPlate = 4;
+}
+
+message IncreaseTripFareRequest {
+  string tripID = 1;
+  string userID = 2;
+  double totalPriceInCents = 3;
+}
+
+message IncreaseTripFareResponse {
+  Trip trip = 1;
 }

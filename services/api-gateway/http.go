@@ -104,6 +104,43 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, response)
 }
 
+func handleIncreaseTripFare(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleIncreaseTripFare")
+	defer span.End()
+
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var reqBody increaseTripFareRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "failed to parse JSON data")
+		return
+	}
+	defer r.Body.Close()
+
+	if reqBody.TripID == "" || reqBody.UserID == "" || reqBody.TotalPriceInCents <= 0 {
+		writeJSONError(w, http.StatusBadRequest, "tripID, userID, and totalPriceInCents are required")
+		return
+	}
+
+	tripService, err := grpc_clients.NewTripServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer tripService.Close()
+
+	resp, err := tripService.Client.IncreaseTripFare(ctx, reqBody.toProto())
+	if err != nil {
+		log.Printf("IncreaseTripFare: %v", err)
+		writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("Failed to increase fare: %v", err))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: resp})
+}
+
 func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.RabbitMQ) {
 	ctx, span := tracer.Start(r.Context(), "handleStripeWebhook")
 	defer span.End()

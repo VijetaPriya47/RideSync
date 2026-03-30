@@ -31,5 +31,22 @@ Before finishing a task:
 - Verify that your changes appear correctly in the sidebar.
 - Ensure all Mermaid diagrams render as expected.
 
+## 5. Trip Service → Driver Service (`DRIVER_SERVICE_URL`)
+
+Trip Service calls Driver Service over gRPC to reserve and release passenger seats when a driver accepts a trip and when payment completes (carpooling / multi-seat flows).
+
+- Set **`DRIVER_SERVICE_URL`** to the **Kubernetes Service DNS name and port** where Driver Service listens for gRPC (same port as the driver Service’s `targetPort`).
+- Examples:
+  - Local Docker Compose (driver defaults to port **8080** inside the container): `driver-service:8080`
+  - Development Kubernetes manifest in this repo: `driver-service:8080`
+  - Production Kubernetes manifest in this repo uses driver Service port **9092**: `driver-service:9092`
+- If the client cannot connect, Trip Service logs a warning and continues; **seat counts on the driver will not stay in sync** until connectivity is fixed.
+
+## 6. RabbitMQ: `find_available_drivers` queue and TTL
+
+The **`find_available_drivers`** queue is declared with **`x-message-ttl`** (120 seconds) so driver-search messages expire if no consumer processes them in time. Expired messages are dead-lettered; the API Gateway notifies riders over WebSocket (`trip.event.no_drivers_found`).
+
+**Important:** RabbitMQ does **not** update arguments on an existing queue. If the queue was created earlier **without** TTL, you must **delete the `find_available_drivers` queue** (or recreate the vhost) before redeploying so it is recreated with the correct TTL. Until then, the 2-minute expiry will not apply.
+
 ---
 *Following these rules ensures that Hybrid Logistics Engine remains a well-documented, state-of-the-art logistics platform.*

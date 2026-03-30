@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"ride-sharing/services/api-gateway/grpc_clients"
 	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/messaging"
@@ -81,6 +82,13 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request, rb *messagin
 		return
 	}
 
+	var capacity int32
+	if capStr := r.URL.Query().Get("capacity"); capStr != "" {
+		if v, err := strconv.ParseInt(capStr, 10, 32); err == nil && v > 0 {
+			capacity = int32(v)
+		}
+	}
+
 	// Add connection to manager
 	connManager.Add(userID, conn)
 
@@ -98,6 +106,7 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request, rb *messagin
 		driverService.Client.UnregisterDriver(ctx, &driver.RegisterDriverRequest{
 			DriverID:    userID,
 			PackageSlug: packageSlug,
+			Capacity:    capacity,
 		})
 
 		driverService.Close()
@@ -108,6 +117,7 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request, rb *messagin
 	driverData, err := driverService.Client.RegisterDriver(ctx, &driver.RegisterDriverRequest{
 		DriverID:    userID,
 		PackageSlug: packageSlug,
+		Capacity:    capacity,
 	})
 	if err != nil {
 		log.Printf("Error registering driver: %v", err)
