@@ -63,3 +63,4 @@ build/
 
 # Secrets
 secrets.yamlgen/
+infra/development/k8s/secrets.yaml
