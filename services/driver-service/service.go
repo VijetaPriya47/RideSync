@@ -48,9 +48,8 @@ func (s *Service) FindAvailableDrivers(packageType string, requestedSeats int32,
 
 	var matchingDrivers []string
 	
-	var tripStart *pb.Coordinate
 	if tripRoute != nil && len(tripRoute.Geometry) > 0 && len(tripRoute.Geometry[0].Coordinates) > 0 {
-		tripStart = tripRoute.Geometry[0].Coordinates[0]
+		// tripStart is no longer needed since we relaxed the geohash check
 	}
 
 	for _, d := range s.drivers {
@@ -61,17 +60,9 @@ func (s *Service) FindAvailableDrivers(packageType string, requestedSeats int32,
 			continue
 		}
 		
-		// If it's a carpool and the driver is currently on trips, do a simple distance/geohash check
-		if packageType == carpoolPackageSlug && len(d.Driver.ActiveTripIds) > 0 && tripStart != nil {
-			// Check if the driver is somewhat close to the new trip's start location
-			// A simple check is to compare the first 4 characters of the geohash (approx 20-30km)
-			tripGeohash := geohash.Encode(tripStart.Latitude, tripStart.Longitude)
-			if len(d.Driver.Geohash) >= 4 && len(tripGeohash) >= 4 {
-				if d.Driver.Geohash[:4] != tripGeohash[:4] {
-					continue
-				}
-			}
-		}
+		// No proximity check for carpool drivers on active trips for now.
+		// The frontend handles accurate route overlap filtering, and
+		// this allows matching even if mocked driver locations are stale.
 
 		matchingDrivers = append(matchingDrivers, d.Driver.Id)
 	}

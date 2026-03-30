@@ -11,6 +11,7 @@ import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
 import { TripEvents } from "../contracts";
 import { useState, useMemo, useRef } from "react";
+import { cn } from "../lib/utils";
 
 const START_LOCATION: Coordinate = {
   latitude: 28.6139,
@@ -49,9 +50,15 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     driver,
     tripStatus,
     requestedTrip,
+    activeTrip,
+    setActiveTrip,
+    pendingCarpoolRequests,
     sendMessage,
     setTripStatus,
     resetTripStatus,
+    patchDriverSeats,
+    acceptPendingRequest,
+    declinePendingRequest,
   } = useDriverStreamConnection({
     location: riderLocation,
     geohash: driverGeohash,
@@ -59,7 +66,32 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     packageSlug,
   })
 
+  const [isGPSTracking, setIsGPSTracking] = useState(false);
+
+  // GPS Tracking logic
+  useMemo(() => {
+    if (!isGPSTracking) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setRiderLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.error("GPS Tracking Error:", error);
+        setIsGPSTracking(false);
+        alert("Could not access GPS. Please check permissions.");
+      },
+      { enableHighAccuracy: true }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isGPSTracking]);
+
   const handleMapClick = (e: L.LeafletMouseEvent) => {
+    if (isGPSTracking) return; // Disable manual clicks when GPS is on
     setRiderLocation({
       latitude: e.latlng.lat,
       longitude: e.latlng.lng
@@ -81,9 +113,17 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
       }
     })
 
-    setTripStatus(TripEvents.DriverTripAccept)
+    // Optimistically decrement the driver's available seats
+    if (requestedTrip.selectedFare?.packageSlug === CarPackageSlug.CARPOOL) {
+      const seatsNeeded = requestedTrip.selectedFare?.requestedSeats ?? 1;
+      patchDriverSeats(seatsNeeded);
+    }
 
-  }
+    setActiveTrip(requestedTrip);
+    // Explicitly clear requested trip after setting active trip
+    // so we don't have multiple trips in the overlay
+    setTripStatus(TripEvents.DriverTripAccept);
+  };
 
   const handleDeclineTrip = () => {
     if (!requestedTrip || !requestedTrip.id || !driver) {
@@ -184,6 +224,30 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
           <MapClickHandler onClick={handleMapClick} />
         </MapContainer>
+
+        {/* GPS Tracking Floating Toggle */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+          <button
+            onClick={() => setIsGPSTracking(!isGPSTracking)}
+            className={cn(
+              "flex items-center gap-3 px-6 py-3 rounded-full font-bold shadow-2xl transition-all duration-500 scale-100 active:scale-95 border-2",
+              isGPSTracking
+                ? "bg-green-600 text-white border-green-400 animate-pulse ring-4 ring-green-500/30"
+                : "bg-white text-gray-700 border-gray-200 hover:border-blue-400"
+            )}
+          >
+            <div className={cn(
+              "w-3 h-3 rounded-full",
+              isGPSTracking ? "bg-white animate-ping" : "bg-gray-300"
+            )} />
+            {isGPSTracking ? "GPS: LIVE TRACKING" : "GPS: START TRACKING"}
+          </button>
+          {!isGPSTracking && (
+            <p className="text-[10px] bg-black/60 text-white px-3 py-1 rounded-full font-black tracking-widest backdrop-blur-sm">
+              OR CLICK MAP TO SET MANUAL LOCATION
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col md:w-[400px] bg-white border-t md:border-t-0 md:border-l">
@@ -196,6 +260,11 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
             status={tripStatus}
             onAcceptTrip={handleAcceptTrip}
             onDeclineTrip={handleDeclineTrip}
+            pendingCarpoolRequests={pendingCarpoolRequests}
+            availableSeats={driver?.availableSeats}
+            activeTrip={activeTrip}
+            onAcceptPending={acceptPendingRequest}
+            onDeclinePending={declinePendingRequest}
           />
         </div>
       </div>

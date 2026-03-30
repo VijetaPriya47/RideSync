@@ -171,8 +171,22 @@ export const RiderTripOverview = ({
             <Skeleton className="h-4 w-[250px]" />
             <Skeleton className="h-4 w-[200px]" />
           </div>
-          <div className="text-sm font-bold mt-2 text-center text-gray-500">
-            Time elapsed: {120 - timeLeft}s / 120s
+          {selectedFare && (
+            <div className="text-xl font-bold text-gray-800 mt-4 bg-green-50 px-4 py-2 rounded-lg border border-green-200 shadow-sm transition-all duration-300 transform">
+              Offering: ${(((selectedFare.totalPriceInCents || 0) * (selectedFare.packageSlug === 'carpool' ? (selectedFare.requestedSeats || 1) : 1)) / 100).toFixed(2)}
+            </div>
+          )}
+          <div className="flex flex-col items-center justify-center mt-6 group relative">
+            <div className="relative flex justify-center items-center">
+              <svg width="64" height="64" className="transform -rotate-90 origin-center transition-all duration-500 ease-in-out">
+                <circle cx="32" cy="32" r="28" className="text-gray-100" strokeWidth="6" stroke="currentColor" fill="transparent" />
+                <circle cx="32" cy="32" r="28" className="text-blue-500 transition-all duration-1000 ease-linear shadow-blue-500/50" strokeWidth="6" stroke="currentColor" fill="transparent" strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * ((120 - timeLeft) / 120)} strokeLinecap="round" />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-lg font-extrabold text-gray-800">{timeLeft}s</span>
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 font-medium mt-2 tracking-wide uppercase">Searching</span>
           </div>
         </div>
 

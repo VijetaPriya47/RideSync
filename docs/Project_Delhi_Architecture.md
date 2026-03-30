@@ -1,5 +1,5 @@
 # Technical Design Document: Project Delhi Rollout & Stability Optimization
-**Author:** L6 SWE // **Status:** Implemented // **Date:** March 2026
+**Author:** Vijeta Priya // **Status:** Implemented // **Date:** March 2026
 
 ## Overview
 This document outlines the architectural decisions, system tradeoffs, and technical implementations executed to finalize the Hybrid Logistics Engine for real-world deployment (centered on the highly-dense New Delhi region). 

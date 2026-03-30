@@ -71,7 +71,10 @@ func (r *mongoRepository) UpdateTrip(ctx context.Context, tripID string, status 
 		update["$set"].(bson.M)["driver"] = domainDriver
 	}
 
-	result, err := r.db.Collection(db.TripsCollection).UpdateOne(ctx, bson.M{"_id": _id}, update)
+	// Add status check to ensure we only update if it's still pending
+	// This prevents the race condition where two drivers accept the same trip.
+	filter := bson.M{"_id": _id, "status": "pending"}
+	result, err := r.db.Collection(db.TripsCollection).UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}
