@@ -149,3 +149,21 @@ func (r *mongoRepository) UpdateTripRideFareTotal(ctx context.Context, tripID st
 	}
 	return nil
 }
+
+func (r *mongoRepository) UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error {
+	_id, err := primitive.ObjectIDFromHex(fareID)
+	if err != nil {
+		return err
+	}
+
+	res, err := r.db.Collection(db.RideFaresCollection).UpdateOne(ctx, bson.M{"_id": _id}, bson.M{
+		"$set": bson.M{"requestedSeats": seats},
+	})
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("ride fare not found: %s", fareID)
+	}
+	return nil
+}

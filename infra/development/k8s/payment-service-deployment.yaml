@@ -49,6 +49,8 @@ spec:
                 secretKeyRef:
                   name: stripe-secrets
                   key: stripe-secret-key
+            - name: USE_STRIPE_API
+              value: "true"
 
             # RabbitMQ credentials
             - name: RABBITMQ_URI

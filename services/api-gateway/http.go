@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"ride-sharing/services/api-gateway/grpc_clients"
 	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/env"
@@ -213,6 +214,37 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 			return
 		}
 	}
+}
+
+func handleUpdateTripSeats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var reqBody struct {
+		FareID string `json:"fareID"`
+		Seats  int32  `json:"seats"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "failed to parse JSON data")
+		return
+	}
+	defer r.Body.Close()
+
+	payload, _ := json.Marshal(reqBody)
+	resp, err := http.Post("http://trip-service:8080/fares/update-seats", "application/json", strings.NewReader(string(payload)))
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		writeJSONError(w, resp.StatusCode, "failed to update seats")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func writeJSONError(w http.ResponseWriter, code int, message string) {

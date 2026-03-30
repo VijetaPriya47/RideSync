@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -103,9 +104,43 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/trips/", func(w http.ResponseWriter, r *http.Request) {
+		tripID := strings.TrimPrefix(r.URL.Path, "/trips/")
+		if tripID == "" {
+			http.Error(w, "tripID is required", http.StatusBadRequest)
+			return
+		}
+		trip, err := svc.GetTripByID(r.Context(), tripID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if trip == nil {
+			http.Error(w, "trip not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(trip)
+	})
+
+	mux.HandleFunc("/fares/update-seats", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			FareID string `json:"fareID"`
+			Seats  int32  `json:"seats"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := mongoDBRepo.UpdateRideFareSeats(r.Context(), req.FareID, req.Seats); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Trip Service is Healthy"))
 	})
 
 	h2Handler := h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

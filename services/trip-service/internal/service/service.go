@@ -13,6 +13,7 @@ import (
 	pbd "ride-sharing/shared/proto/driver"
 	"ride-sharing/shared/types"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -49,7 +50,7 @@ func (s *service) GetRoute(ctx context.Context, waypoints []*types.Coordinate, u
 	if !useOSRMApi {
 		coords := make([][]float64, 0, len(waypoints))
 		for _, w := range waypoints {
-			coords = append(coords, []float64{w.Latitude, w.Longitude})
+			coords = append(coords, []float64{w.Longitude, w.Latitude})
 		}
 		return &tripTypes.OsrmApiResponse{
 			Routes: []struct {
@@ -85,22 +86,30 @@ func (s *service) GetRoute(ctx context.Context, waypoints []*types.Coordinate, u
 	url := fmt.Sprintf("%s/route/v1/driving/%s?overview=full&geometries=geojson", baseURL, b.String())
 	log.Printf("Started Fetching from OSRM API: URL: %s", url)
 
-	resp, err := http.Get(url)
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch route from OSRM API: %v", err)
+		return nil, fmt.Errorf("failed to fetch route from OSRM API: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("OSRM API returned status %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read the response: %v", err)
+		return nil, fmt.Errorf("failed to read OSRM response body: %w", err)
 	}
 
 	log.Printf("Got response from OSRM API %s", string(body))
 
 	var routeResp tripTypes.OsrmApiResponse
 	if err := json.Unmarshal(body, &routeResp); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %v", err)
+		return nil, fmt.Errorf("failed to parse OSRM response: %w", err)
 	}
 
 	return &routeResp, nil

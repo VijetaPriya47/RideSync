@@ -159,7 +159,7 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (status === TripEvents.Created) {
+  if (status === TripEvents.Created || (trip.tripID && !status)) {
     return (
       <TripOverviewCard
         title="Looking for a driver"
@@ -189,7 +189,7 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (trip.rideFares && trip.rideFares.length >= 0 && !trip.tripID) {
+  if (trip.rideFares && trip.rideFares.length > 0 && !trip.tripID) {
     return (
       <DriverList
         trip={trip}
@@ -200,8 +200,10 @@ export const RiderTripOverview = ({
   }
 
   return (
-    <Card className="w-full md:max-w-[500px] z-[9999] flex-[0.3]">
-      No trip ride fares, please refresh the page
+    <Card className="w-full md:max-w-[500px] z-[9999] flex-[0.3] p-6 flex flex-col items-center justify-center text-center">
+      <h3 className="text-lg font-semibold mb-2">No active trip found</h3>
+      <p className="text-gray-500 mb-4">Please set a destination on the map to start.</p>
+      <Button onClick={onCancel} variant="outline" className="w-full">Go Back</Button>
     </Card>
   )
 }

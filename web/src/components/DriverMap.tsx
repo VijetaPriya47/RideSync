@@ -13,8 +13,8 @@ import { TripEvents } from "../contracts";
 import { useState, useMemo, useRef } from "react";
 
 const START_LOCATION: Coordinate = {
-  latitude: 37.7749,
-  longitude: -122.4194,
+  latitude: 28.6139,
+  longitude: 77.2090,
 }
 
 const driverMarker = new L.Icon({
@@ -171,10 +171,10 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
           {isCarpool && activeTripIds.length > 0 && (
             <Marker position={[riderLocation.latitude, riderLocation.longitude]} icon={driverMarker}>
-               <Popup>
-                 Active Carpool Trips: {activeTripIds.length} <br/>
-                 Available Seats: {driver?.availableSeats}
-               </Popup>
+              <Popup>
+                Active Carpool Trips: {activeTripIds.length} <br />
+                Available Seats: {driver?.availableSeats}
+              </Popup>
             </Marker>
           )}
 

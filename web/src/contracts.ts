@@ -5,6 +5,7 @@ export enum BackendEndpoints {
   PREVIEW_TRIP = "/trip/preview",
   START_TRIP = "/trip/start",
   INCREASE_TRIP_FARE = "/trip/increase-fare",
+  UPDATE_TRIP_SEATS = "/trip/update-seats",
   WS_DRIVERS = "/drivers",
   WS_RIDERS = "/riders",
 }

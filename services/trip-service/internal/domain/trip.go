@@ -57,6 +57,7 @@ type TripRepository interface {
 	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
 	UpdateRideFareTotal(ctx context.Context, fareID string, totalPriceInCents float64) error
 	UpdateTripRideFareTotal(ctx context.Context, tripID string, totalPriceInCents float64) error
+	UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error
 }
 
 type TripService interface {

@@ -16,10 +16,17 @@ const (
 	NotifyPaymentSessionCreatedQueue = "notify_payment_session_created"
 	NotifyPaymentSuccessQueue        = "payment_success"
 	DeadLetterQueue                  = "dead_letter_queue"
+	SearchRetryQueue                 = "search_retry_queue"
+)
+
+const (
+	DriverSearchMessageTTLMs = 120_000
+	SearchRetryTTLMs         = 10_000
 )
 
 type TripEventData struct {
-	Trip *pb.Trip `json:"trip"`
+	Trip           *pb.Trip `json:"trip"`
+	TriedDriverIDs []string `json:"triedDriverIds"`
 }
 
 type DriverTripResponseData struct {

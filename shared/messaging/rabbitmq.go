@@ -281,8 +281,6 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 	return nil
 }
 
-// DriverSearchMessageTTLMs drops unconsumed driver-search jobs after this duration (2 minutes).
-const DriverSearchMessageTTLMs = 120_000
 
 func (r *RabbitMQ) declareFindAvailableDriversQueue() error {
 	args := amqp.Table{
@@ -305,7 +303,58 @@ func (r *RabbitMQ) declareFindAvailableDriversQueue() error {
 			return fmt.Errorf("failed to bind queue %s: %v", FindAvailableDriversQueue, err)
 		}
 	}
+	if err := r.declareSearchRetryQueue(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (r *RabbitMQ) declareSearchRetryQueue() error {
+	args := amqp.Table{
+		"x-dead-letter-exchange": TripExchange, // Route back to the main exchange
+		// Note: The routing key from the search_retry_queue will be used to route back to TripExchange.
+		// Since we want it to go back to find_available_drivers, we'll set the dead letter routing key.
+		"x-dead-letter-routing-key": contracts.TripEventDriverNotInterested,
+		"x-message-ttl":             int32(SearchRetryTTLMs),
+	}
+	_, err := r.Channel.QueueDeclare(
+		SearchRetryQueue,
+		true,
+		false,
+		false,
+		false,
+		args,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue %s: %v", SearchRetryQueue, err)
+	}
+
+	return nil
+}
+
+func (r *RabbitMQ) PublishDelayMessage(ctx context.Context, message contracts.AmqpMessage) error {
+	log.Printf("Publishing delay message to %s", SearchRetryQueue)
+
+	jsonMsg, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %v", err)
+	}
+
+	msg := amqp.Publishing{
+		DeliveryMode: amqp.Persistent,
+		ContentType:  "application/json",
+		Body:         jsonMsg,
+	}
+
+	// Publish directly to the retry queue (no exchange)
+	return r.Channel.PublishWithContext(ctx,
+		"",               // exchange
+		SearchRetryQueue, // routing key
+		false,            // mandatory
+		false,            // immediate
+		msg,
+	)
 }
 
 func (r *RabbitMQ) declareAndBindQueue(queueName string, messageTypes []string, exchange string) error {
