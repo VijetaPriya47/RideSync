@@ -85,3 +85,12 @@ func (r *inmemRepository) UpdateTripRideFareTotal(ctx context.Context, tripID st
 	trip.RideFare.TotalPriceInCents = totalPriceInCents
 	return nil
 }
+
+func (r *inmemRepository) UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error {
+	f, ok := r.rideFares[fareID]
+	if !ok {
+		return fmt.Errorf("ride fare not found: %s", fareID)
+	}
+	f.RequestedSeats = seats
+	return nil
+}

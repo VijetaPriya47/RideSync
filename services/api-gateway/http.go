@@ -41,7 +41,9 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 	// so we create a new client for each connection
 	tripService, err := grpc_clients.NewTripServiceClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to create trip service client: %v", err)
+		writeJSONError(w, http.StatusInternalServerError, "Internal server error")
+		return
 	}
 
 	// Don't forget to close the client to avoid resource leaks!
@@ -87,7 +89,9 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	// so we create a new client for each connection
 	tripService, err := grpc_clients.NewTripServiceClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to create trip service client: %v", err)
+		writeJSONError(w, http.StatusInternalServerError, "Internal server error")
+		return
 	}
 
 	// Don't forget to close the client to avoid resource leaks!
@@ -128,7 +132,9 @@ func handleIncreaseTripFare(w http.ResponseWriter, r *http.Request) {
 
 	tripService, err := grpc_clients.NewTripServiceClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to create trip service client: %v", err)
+		writeJSONError(w, http.StatusInternalServerError, "Internal server error")
+		return
 	}
 	defer tripService.Close()
 

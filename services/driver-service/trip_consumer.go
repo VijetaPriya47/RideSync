@@ -105,14 +105,12 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	log.Printf("Found suitable drivers: current=%d, remaining=%d, tried=%d", len(allSuitableIDs), len(suitableIDs), len(payload.TriedDriverIDs))
 
 	if len(suitableIDs) == 0 {
-		// If we've already tried some drivers, and no one else is available, notify "No Drivers Found" only if this was the initial request
-		if len(payload.TriedDriverIDs) == 0 {
-			if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound, contracts.AmqpMessage{
-				OwnerID: payload.Trip.UserID,
-			}); err != nil {
-				log.Printf("Failed to publish message to exchange: %v", err)
-				return err
-			}
+		// No more untried suitable drivers found. Notify the rider.
+		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound, contracts.AmqpMessage{
+			OwnerID: payload.Trip.UserID,
+		}); err != nil {
+			log.Printf("Failed to publish message to exchange: %v", err)
+			return err
 		}
 		return nil
 	}
@@ -148,6 +146,13 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 		}
 	} else {
 		log.Printf("Reached maximum driver notifications (12) for trip %s", payload.Trip.Id)
+		// We reached the retry limit. Notify the rider that no drivers were found.
+		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound, contracts.AmqpMessage{
+			OwnerID: payload.Trip.UserID,
+		}); err != nil {
+			log.Printf("Failed to publish message to exchange: %v", err)
+			return err
+		}
 	}
 
 	return nil
