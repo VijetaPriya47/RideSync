@@ -49,8 +49,12 @@ func main() {
 
 	log.Println("Starting RabbitMQ connection")
 
+	startDriverSearchExpiredConsumer(rabbitmq)
+
 	mux.Handle("/trip/preview", tracing.WrapHandlerFunc(enableCORS(handleTripPreview), "/trip/preview"))
 	mux.Handle("/trip/start", tracing.WrapHandlerFunc(enableCORS(handleTripStart), "/trip/start"))
+	mux.Handle("/trip/increase-fare", tracing.WrapHandlerFunc(enableCORS(handleIncreaseTripFare), "/trip/increase-fare"))
+	mux.Handle("/trip/update-seats", tracing.WrapHandlerFunc(enableCORS(handleUpdateTripSeats), "/trip/update-seats"))
 	mux.Handle("/ws/drivers", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleDriversWebSocket(w, r, rabbitmq)
 	}, "/ws/drivers"))

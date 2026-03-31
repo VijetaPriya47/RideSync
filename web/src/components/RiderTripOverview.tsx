@@ -8,6 +8,7 @@ import { TripOverviewCard } from "./TripOverviewCard"
 import { StripePaymentButton } from "./StripePaymentButton"
 import { DriverCard } from "./DriverCard"
 import { TripEvents, PaymentEventSessionCreatedData } from "../contracts"
+import { useState, useEffect } from "react"
 
 interface TripOverviewProps {
   trip: TripPreview | null;
@@ -17,6 +18,7 @@ interface TripOverviewProps {
   selectedFare?: RouteFare | null;
   onPackageSelect: (carPackage: RouteFare) => void;
   onCancel: () => void;
+  onIncreaseFare?: (percentage: number) => void;
 }
 
 export const RiderTripOverview = ({
@@ -27,13 +29,56 @@ export const RiderTripOverview = ({
   selectedFare,
   onPackageSelect,
   onCancel,
+  onIncreaseFare,
 }: TripOverviewProps) => {
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [timerEnded, setTimerEnded] = useState(false);
+
+  useEffect(() => {
+    if (status === TripEvents.Created) {
+      setTimeLeft(120);
+      setTimerEnded(false);
+    }
+  }, [status, trip?.tripID]);
+
+  useEffect(() => {
+    if (status === TripEvents.Created && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && status === TripEvents.Created) {
+      setTimerEnded(true);
+    }
+  }, [timeLeft, status]);
+
+  const showIncreasePrompt = status === TripEvents.NoDriversFound || timerEnded;
+
   if (!trip) {
     return (
       <TripOverviewCard
         title="Start a trip"
         description="Click on the map to set a destination"
       />
+    )
+  }
+
+  if (showIncreasePrompt && status !== TripEvents.Completed && status !== TripEvents.Cancelled && status !== TripEvents.DriverAssigned && status !== TripEvents.PaymentSessionCreated) {
+    return (
+      <TripOverviewCard
+        title="No drivers available right now"
+        description="Would you like to increase your fare to attract more drivers?"
+      >
+        <div className="flex flex-col gap-2 mt-4">
+          <Button variant="default" onClick={() => { onIncreaseFare?.(10); setTimerEnded(false); }}>
+            Increase Fare by 10%
+          </Button>
+          <Button variant="default" onClick={() => { onIncreaseFare?.(20); setTimerEnded(false); }}>
+            Increase Fare by 20%
+          </Button>
+          <Button variant="outline" className="w-full" onClick={onCancel}>
+            Cancel Request
+          </Button>
+        </div>
+      </TripOverviewCard>
     )
   }
 
@@ -56,6 +101,8 @@ export const RiderTripOverview = ({
     )
   }
 
+  // Handled by showIncreasePrompt
+  /*
   if (status === TripEvents.NoDriversFound) {
     return (
       <TripOverviewCard
@@ -68,6 +115,7 @@ export const RiderTripOverview = ({
       </TripOverviewCard>
     )
   }
+  */
 
   if (status === TripEvents.DriverAssigned) {
     return (
@@ -111,7 +159,7 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (status === TripEvents.Created) {
+  if (status === TripEvents.Created || (trip.tripID && !status)) {
     return (
       <TripOverviewCard
         title="Looking for a driver"
@@ -122,6 +170,23 @@ export const RiderTripOverview = ({
           <div className="space-y-2">
             <Skeleton className="h-4 w-[250px]" />
             <Skeleton className="h-4 w-[200px]" />
+          </div>
+          {selectedFare && (
+            <div className="text-xl font-bold text-gray-800 mt-4 bg-green-50 px-4 py-2 rounded-lg border border-green-200 shadow-sm transition-all duration-300 transform">
+              Offering: ${(((selectedFare.totalPriceInCents || 0) * (selectedFare.packageSlug === 'carpool' ? (selectedFare.requestedSeats || 1) : 1)) / 100).toFixed(2)}
+            </div>
+          )}
+          <div className="flex flex-col items-center justify-center mt-6 group relative">
+            <div className="relative flex justify-center items-center">
+              <svg width="64" height="64" className="transform -rotate-90 origin-center transition-all duration-500 ease-in-out">
+                <circle cx="32" cy="32" r="28" className="text-gray-100" strokeWidth="6" stroke="currentColor" fill="transparent" />
+                <circle cx="32" cy="32" r="28" className="text-blue-500 transition-all duration-1000 ease-linear shadow-blue-500/50" strokeWidth="6" stroke="currentColor" fill="transparent" strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * ((120 - timeLeft) / 120)} strokeLinecap="round" />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-lg font-extrabold text-gray-800">{timeLeft}s</span>
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 font-medium mt-2 tracking-wide uppercase">Searching</span>
           </div>
         </div>
 
@@ -138,7 +203,7 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (trip.rideFares && trip.rideFares.length >= 0 && !trip.tripID) {
+  if (trip.rideFares && trip.rideFares.length > 0 && !trip.tripID) {
     return (
       <DriverList
         trip={trip}
@@ -149,8 +214,10 @@ export const RiderTripOverview = ({
   }
 
   return (
-    <Card className="w-full md:max-w-[500px] z-[9999] flex-[0.3]">
-      No trip ride fares, please refresh the page
+    <Card className="w-full md:max-w-[500px] z-[9999] flex-[0.3] p-6 flex flex-col items-center justify-center text-center">
+      <h3 className="text-lg font-semibold mb-2">No active trip found</h3>
+      <p className="text-gray-500 mb-4">Please set a destination on the map to start.</p>
+      <Button onClick={onCancel} variant="outline" className="w-full">Go Back</Button>
     </Card>
   )
 }

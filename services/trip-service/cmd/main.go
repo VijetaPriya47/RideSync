@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"ride-sharing/services/trip-service/internal/infrastructure/driverclient"
 	"ride-sharing/services/trip-service/internal/infrastructure/events"
 	"ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"ride-sharing/services/trip-service/internal/infrastructure/repository"
@@ -74,16 +76,23 @@ func main() {
 
 	publisher := events.NewTripEventPublisher(rabbitmq)
 
-	// Start driver consumer
-	driverConsumer := events.NewDriverConsumer(rabbitmq, svc)
+	var seatSync events.SeatNotifier
+	drvClient, err := driverclient.New()
+	if err != nil {
+		log.Printf("WARN: driver gRPC client: %v (seat sync disabled)", err)
+	} else {
+		defer func() { _ = drvClient.Close() }()
+		seatSync = drvClient
+	}
+
+	driverConsumer := events.NewDriverConsumer(rabbitmq, svc, seatSync)
 	go driverConsumer.Listen()
 
 	// Initialize the gRPC server
 	grpcServer := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	grpc.NewGRPCHandler(grpcServer, svc, publisher)
 
-	// Start payment consumer
-	paymentConsumer := events.NewPaymentConsumer(rabbitmq, svc)
+	paymentConsumer := events.NewPaymentConsumer(rabbitmq, svc, drvClient)
 	go paymentConsumer.Listen()
 
 	log.Printf("Starting gRPC server Trip service on port %s", GrpcAddr)
@@ -95,9 +104,43 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/trips/", func(w http.ResponseWriter, r *http.Request) {
+		tripID := strings.TrimPrefix(r.URL.Path, "/trips/")
+		if tripID == "" {
+			http.Error(w, "tripID is required", http.StatusBadRequest)
+			return
+		}
+		trip, err := svc.GetTripByID(r.Context(), tripID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if trip == nil {
+			http.Error(w, "trip not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(trip)
+	})
+
+	mux.HandleFunc("/fares/update-seats", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			FareID string `json:"fareID"`
+			Seats  int32  `json:"seats"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := mongoDBRepo.UpdateRideFareSeats(r.Context(), req.FareID, req.Seats); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Trip Service is Healthy"))
 	})
 
 	h2Handler := h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -13,15 +13,22 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
-type driverConsumer struct {
-	rabbitmq *messaging.RabbitMQ
-	service  domain.TripService
+// SeatNotifier notifies driver-service when seats are reserved or released.
+type SeatNotifier interface {
+	NotifyTripAcceptedSeats(ctx context.Context, driverID, tripID string, seats int32)
 }
 
-func NewDriverConsumer(rabbitmq *messaging.RabbitMQ, service domain.TripService) *driverConsumer {
+type driverConsumer struct {
+	rabbitmq     *messaging.RabbitMQ
+	service      domain.TripService
+	seatNotifier SeatNotifier
+}
+
+func NewDriverConsumer(rabbitmq *messaging.RabbitMQ, service domain.TripService, seatNotifier SeatNotifier) *driverConsumer {
 	return &driverConsumer{
-		rabbitmq: rabbitmq,
-		service:  service,
+		rabbitmq:     rabbitmq,
+		service:      service,
+		seatNotifier: seatNotifier,
 	}
 }
 
@@ -61,11 +68,12 @@ func (c *driverConsumer) Listen() error {
 }
 
 func (c *driverConsumer) handleTripDeclined(ctx context.Context, tripID, riderID string) error {
-	// When a driver declines, we should try to find another driver
-
 	trip, err := c.service.GetTripByID(ctx, tripID)
 	if err != nil {
 		return err
+	}
+	if trip == nil {
+		return fmt.Errorf("trip not found: %s", tripID)
 	}
 
 	newPayload := messaging.TripEventData{
@@ -90,7 +98,6 @@ func (c *driverConsumer) handleTripDeclined(ctx context.Context, tripID, riderID
 }
 
 func (c *driverConsumer) handleTripAccepted(ctx context.Context, tripID string, driver *pbd.Driver) error {
-	// 1. Fetch the first
 	trip, err := c.service.GetTripByID(ctx, tripID)
 	if err != nil {
 		return err
@@ -100,7 +107,6 @@ func (c *driverConsumer) handleTripAccepted(ctx context.Context, tripID string, 
 		return fmt.Errorf("Trip was not found %s", tripID)
 	}
 
-	// 2. Update the trip
 	if err := c.service.UpdateTrip(ctx, tripID, "accepted", driver); err != nil {
 		log.Printf("Failed to update the trip: %v", err)
 		return err
@@ -111,13 +117,19 @@ func (c *driverConsumer) handleTripAccepted(ctx context.Context, tripID string, 
 		return err
 	}
 
-	// 3. Driver has been assigned -> publish this event to RB
+	seats := int32(1)
+	if trip.RideFare != nil && trip.RideFare.RequestedSeats > 0 {
+		seats = trip.RideFare.RequestedSeats
+	}
+	if c.seatNotifier != nil && driver != nil {
+		c.seatNotifier.NotifyTripAcceptedSeats(ctx, driver.Id, tripID, seats)
+	}
+
 	marshalledTrip, err := json.Marshal(trip)
 	if err != nil {
 		return err
 	}
 
-	// Notify the rider that a driver has been assigned
 	if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventDriverAssigned, contracts.AmqpMessage{
 		OwnerID: trip.UserID,
 		Data:    marshalledTrip,
@@ -132,6 +144,9 @@ func (c *driverConsumer) handleTripAccepted(ctx context.Context, tripID string, 
 		Amount:   trip.RideFare.TotalPriceInCents,
 		Currency: "USD",
 	})
+	if err != nil {
+		return err
+	}
 
 	if err := c.rabbitmq.PublishMessage(ctx, contracts.PaymentCmdCreateSession,
 		contracts.AmqpMessage{

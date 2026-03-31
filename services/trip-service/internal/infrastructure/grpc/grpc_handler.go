@@ -52,6 +52,7 @@ func (h *gRPCHandler) CreateTrip(ctx context.Context, req *pb.CreateTripRequest)
 
 	return &pb.CreateTripResponse{
 		TripID: trip.ID.Hex(),
+		Trip:   trip.ToProto(),
 	}, nil
 }
 
@@ -59,19 +60,24 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	pickup := req.GetStartLocation()
 	destination := req.GetEndLocation()
 
-	pickupCoord := &types.Coordinate{
-		Latitude:  pickup.Latitude,
-		Longitude: pickup.Longitude,
-	}
-	destinationCoord := &types.Coordinate{
-		Latitude:  destination.Latitude,
-		Longitude: destination.Longitude,
+	waypoints := []*types.Coordinate{
+		{
+			Latitude:  pickup.Latitude,
+			Longitude: pickup.Longitude,
+		},
+		{
+			Latitude:  destination.Latitude,
+			Longitude: destination.Longitude,
+		},
 	}
 
 	userID := req.GetUserID()
+	requestedSeats := req.GetRequestedSeats()
+	if requestedSeats < 1 {
+		requestedSeats = 1
+	}
 
-	// CHANGE THE LAST ARG TO "FALSE" if the OSRM API is not working right now
-	route, err := h.service.GetRoute(ctx, pickupCoord, destinationCoord, true)
+	route, err := h.service.GetRoute(ctx, waypoints, true)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Errorf(codes.Internal, "failed to get route: %v", err)
@@ -79,7 +85,7 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 
 	estimatedFares := h.service.EstimatePackagesPriceWithRoute(route)
 
-	fares, err := h.service.GenerateTripFares(ctx, estimatedFares, userID, route)
+	fares, err := h.service.GenerateTripFares(ctx, estimatedFares, userID, route, requestedSeats)
 	if err != nil {
 		log.Printf("DEBUG: PreviewTrip - GenerateTripFares failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "failed to generate the ride fares: %v", err)
@@ -88,5 +94,21 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	return &pb.PreviewTripResponse{
 		Route:     route.ToProto(),
 		RideFares: domain.ToRideFaresProto(fares),
+	}, nil
+}
+
+func (h *gRPCHandler) IncreaseTripFare(ctx context.Context, req *pb.IncreaseTripFareRequest) (*pb.IncreaseTripFareResponse, error) {
+	trip, err := h.service.IncreaseTripFare(ctx, req.GetTripID(), req.GetUserID(), req.GetTotalPriceInCents())
+	if err != nil {
+		log.Printf("IncreaseTripFare: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	if err := h.publisher.PublishTripCreated(ctx, trip); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to republish trip for driver search: %v", err)
+	}
+
+	return &pb.IncreaseTripFareResponse{
+		Trip: trip.ToProto(),
 	}, nil
 }

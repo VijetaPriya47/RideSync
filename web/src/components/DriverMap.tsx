@@ -4,18 +4,18 @@ import { useDriverStreamConnection } from "../hooks/useDriverStreamConnection"
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import L from 'leaflet';
 import { MapClickHandler } from './MapClickHandler';
-import { useMemo, useState } from "react";
-import { useRef } from "react";
 import { CarPackageSlug, Coordinate } from "../types";
 import { DriverTripOverview } from "./DriverTripOverview";
 import * as Geohash from 'ngeohash';
 import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
 import { TripEvents } from "../contracts";
+import { useState, useMemo, useRef } from "react";
+import { cn } from "../lib/utils";
 
 const START_LOCATION: Coordinate = {
-  latitude: 37.7749,
-  longitude: -122.4194,
+  latitude: 28.6139,
+  longitude: 77.2090,
 }
 
 const driverMarker = new L.Icon({
@@ -50,9 +50,15 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     driver,
     tripStatus,
     requestedTrip,
+    activeTrip,
+    setActiveTrip,
+    pendingCarpoolRequests,
     sendMessage,
     setTripStatus,
     resetTripStatus,
+    patchDriverSeats,
+    acceptPendingRequest,
+    declinePendingRequest,
   } = useDriverStreamConnection({
     location: riderLocation,
     geohash: driverGeohash,
@@ -60,7 +66,32 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     packageSlug,
   })
 
+  const [isGPSTracking, setIsGPSTracking] = useState(false);
+
+  // GPS Tracking logic
+  useMemo(() => {
+    if (!isGPSTracking) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setRiderLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.error("GPS Tracking Error:", error);
+        setIsGPSTracking(false);
+        alert("Could not access GPS. Please check permissions.");
+      },
+      { enableHighAccuracy: true }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isGPSTracking]);
+
   const handleMapClick = (e: L.LeafletMouseEvent) => {
+    if (isGPSTracking) return; // Disable manual clicks when GPS is on
     setRiderLocation({
       latitude: e.latlng.lat,
       longitude: e.latlng.lng
@@ -82,9 +113,17 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
       }
     })
 
-    setTripStatus(TripEvents.DriverTripAccept)
+    // Optimistically decrement the driver's available seats
+    if (requestedTrip.selectedFare?.packageSlug === CarPackageSlug.CARPOOL) {
+      const seatsNeeded = requestedTrip.selectedFare?.requestedSeats ?? 1;
+      patchDriverSeats(seatsNeeded);
+    }
 
-  }
+    setActiveTrip(requestedTrip);
+    // Explicitly clear requested trip after setting active trip
+    // so we don't have multiple trips in the overlay
+    setTripStatus(TripEvents.DriverTripAccept);
+  };
 
   const handleDeclineTrip = () => {
     if (!requestedTrip || !requestedTrip.id || !driver) {
@@ -107,19 +146,25 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
   console.log({ requestedTrip })
 
-  const parsedRoute = useMemo(() =>
-    requestedTrip?.route?.geometry[0]?.coordinates
-      .map((coord) => [coord?.longitude, coord?.latitude] as [number, number])
-    , [requestedTrip])
-
   // destination is the last coordinate in the route
-  const destination = useMemo(() =>
-    requestedTrip?.route?.geometry[0]?.coordinates[requestedTrip?.route?.geometry[0]?.coordinates?.length - 1]
-    , [requestedTrip])
+  const destination = useMemo(() => {
+    const geoLen = requestedTrip?.route?.geometry?.length || 0;
+    if (geoLen === 0) return null;
+    const coords = requestedTrip?.route?.geometry[geoLen - 1]?.coordinates;
+    if (!coords || coords.length === 0) return null;
+    return coords[coords.length - 1];
+  }, [requestedTrip])
+
   // start location is the first coordinate in the route
-  const startLocation = useMemo(() =>
-    requestedTrip?.route?.geometry[0]?.coordinates[0]
-    , [requestedTrip])
+  const startLocation = useMemo(() => {
+    const coords = requestedTrip?.route?.geometry?.[0]?.coordinates;
+    if (!coords || coords.length === 0) return null;
+    return coords[0];
+  }, [requestedTrip])
+
+  // Get active trip details for carpool rendering
+  const activeTripIds = useMemo(() => driver?.activeTripIds || [], [driver]);
+  const isCarpool = packageSlug === CarPackageSlug.CARPOOL;
 
 
   if (error) {
@@ -164,12 +209,45 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
             </Marker>
           )}
 
-          {parsedRoute && (
-            <RoutingControl route={parsedRoute} />
+          {isCarpool && activeTripIds.length > 0 && (
+            <Marker position={[riderLocation.latitude, riderLocation.longitude]} icon={driverMarker}>
+              <Popup>
+                Active Carpool Trips: {activeTripIds.length} <br />
+                Available Seats: {driver?.availableSeats}
+              </Popup>
+            </Marker>
+          )}
+
+          {requestedTrip?.route && (
+            <RoutingControl route={requestedTrip.route} />
           )}
 
           <MapClickHandler onClick={handleMapClick} />
         </MapContainer>
+
+        {/* GPS Tracking Floating Toggle */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2">
+          <button
+            onClick={() => setIsGPSTracking(!isGPSTracking)}
+            className={cn(
+              "flex items-center gap-3 px-6 py-3 rounded-full font-bold shadow-2xl transition-all duration-500 scale-100 active:scale-95 border-2",
+              isGPSTracking
+                ? "bg-green-600 text-white border-green-400 animate-pulse ring-4 ring-green-500/30"
+                : "bg-white text-gray-700 border-gray-200 hover:border-blue-400"
+            )}
+          >
+            <div className={cn(
+              "w-3 h-3 rounded-full",
+              isGPSTracking ? "bg-white animate-ping" : "bg-gray-300"
+            )} />
+            {isGPSTracking ? "GPS: LIVE TRACKING" : "GPS: START TRACKING"}
+          </button>
+          {!isGPSTracking && (
+            <p className="text-[10px] bg-black/60 text-white px-3 py-1 rounded-full font-black tracking-widest backdrop-blur-sm">
+              OR CLICK MAP TO SET MANUAL LOCATION
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col md:w-[400px] bg-white border-t md:border-t-0 md:border-l">
@@ -182,6 +260,11 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
             status={tripStatus}
             onAcceptTrip={handleAcceptTrip}
             onDeclineTrip={handleDeclineTrip}
+            pendingCarpoolRequests={pendingCarpoolRequests}
+            availableSeats={driver?.availableSeats}
+            activeTrip={activeTrip}
+            onAcceptPending={acceptPendingRequest}
+            onDeclinePending={declinePendingRequest}
           />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WEBSOCKET_URL } from "../constants";
 import { Trip, Driver, CarPackageSlug } from '../types';
 import { ServerWsMessage, TripEvents, isValidWsMessage, isValidTripEvent, ClientWsMessage, BackendEndpoints } from '../contracts';
@@ -20,10 +20,27 @@ export const useDriverStreamConnection = ({
   packageSlug
 }: useDriverConnectionProps) => {
   const [requestedTrip, setRequestedTrip] = useState<Trip | null>(null)
+  const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
+  const [pendingCarpoolRequests, setPendingCarpoolRequests] = useState<Trip[]>([]);
   const [tripStatus, setTripStatus] = useState<TripEvents | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
+  // Ref to always read the latest activeTrip status inside the WS callback
+  const activeTripRef = React.useRef<Trip | null>(null);
+  React.useEffect(() => { activeTripRef.current = activeTrip; }, [activeTrip]);
+
+  useEffect(() => {
+    if (ws?.readyState === WebSocket.OPEN && location && geohash) {
+      ws.send(JSON.stringify({
+        type: TripEvents.DriverLocation,
+        data: {
+          location,
+          geohash,
+        }
+      }));
+    }
+  }, [location, geohash, ws?.readyState]);
 
   useEffect(() => {
     if (!userID) return;
@@ -53,11 +70,17 @@ export const useDriverStreamConnection = ({
       }
 
       switch (message.type) {
-        case TripEvents.DriverTripRequest:
+        case TripEvents.DriverTripRequest: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const trip = (message.data as any).trip ?? message.data;
-          setRequestedTrip(trip);
+          // If driver already has an active accepted trip, queue this as a pending carpool request
+          if (activeTripRef.current) {
+            setPendingCarpoolRequests((prev: Trip[]) => [...prev, trip]);
+          } else {
+            setRequestedTrip(trip);
+          }
           break;
+        }
         case TripEvents.DriverRegister:
           setDriver(message.data);
           break;
@@ -100,7 +123,37 @@ export const useDriverStreamConnection = ({
   const resetTripStatus = () => {
     setTripStatus(null);
     setRequestedTrip(null);
+    setActiveTrip(null);
+    setPendingCarpoolRequests([]);
   }
 
-  return { error, tripStatus, driver, requestedTrip, resetTripStatus, sendMessage, setTripStatus };
+  const acceptPendingRequest = (trip: Trip) => {
+    if (!driver) return;
+    sendMessage({
+      type: TripEvents.DriverTripAccept,
+      data: { tripID: trip.id, riderID: trip.userID, driver },
+    });
+    setPendingCarpoolRequests((prev: Trip[]) => prev.filter((t) => t.id !== trip.id));
+    if (trip.selectedFare?.packageSlug === CarPackageSlug.CARPOOL) {
+      patchDriverSeats(trip.selectedFare?.requestedSeats ?? 1);
+    }
+  };
+
+  const declinePendingRequest = (trip: Trip) => {
+    if (!driver) return;
+    sendMessage({
+      type: TripEvents.DriverTripDecline,
+      data: { tripID: trip.id, riderID: trip.userID, driver },
+    });
+    setPendingCarpoolRequests((prev: Trip[]) => prev.filter((t) => t.id !== trip.id));
+  };
+
+  const patchDriverSeats = (delta: number) => {
+    setDriver((prev: Driver | null) => {
+      if (!prev || prev.availableSeats === undefined) return prev;
+      return { ...prev, availableSeats: Math.max(0, prev.availableSeats - delta) };
+    });
+  };
+
+  return { error, tripStatus, driver, requestedTrip, activeTrip, pendingCarpoolRequests, resetTripStatus, sendMessage, setTripStatus, setActiveTrip, patchDriverSeats, acceptPendingRequest, declinePendingRequest };
 }

@@ -62,4 +62,5 @@ build/
 .cursorrules
 
 # Secrets
-secrets.yaml
+secrets.yamlgen/
+infra/development/k8s/secrets.yaml

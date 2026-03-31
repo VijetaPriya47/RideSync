@@ -20,9 +20,11 @@ The system processes a ride request as follows:
 1. Client sends request through the **Next.js frontend**
 2. **API Gateway** receives and routes the request
 3. **Trip Service** calculates route and estimated fare
-4. **Driver Service** finds nearby available drivers
+4. **Driver Service** finds nearby available drivers (considering both idle and carpooling drivers)
 5. **RabbitMQ** coordinates asynchronous events between services
 6. **Payment Service** processes payment after trip completion
+7. **Carpool Engine** manages multi-rider trips and real-time seat availability
+
 
 ---
 ## Request Lifecycle
@@ -116,6 +118,8 @@ Responsibilities:
 * Fare estimation
 * Trip state management
 
+**Environment:** `DRIVER_SERVICE_URL` must point at the Driver Service gRPC endpoint (host:port as used inside the cluster or Docker network), for example `driver-service:8080` in local Compose / dev Kubernetes, or `driver-service:9092` where production manifests expose that port. If unset, a default may work in some environments but should be set explicitly for carpool seat sync.
+
 ---
 
 ### Driver Service (gRPC : 9092)
@@ -171,6 +175,8 @@ Includes:
 * Retry logic
 * Dead letter queues (DLQ)
 * At-least-once delivery handling
+
+The **`find_available_drivers`** queue uses a **message TTL** (120 seconds). Messages that are not consumed in that window expire into the DLQ; the API Gateway turns those into a **no drivers found** signal to the rider. For full details on this mechanism, see [Trip Request TTL & DLQ Workflow](docs/TTL_WORKFLOW.md). **If you upgrade an existing RabbitMQ deployment**, delete the old `find_available_drivers` queue once so it can be recreated with TTL arguments (RabbitMQ does not patch queue options in place).
 
 ---
 
@@ -248,9 +254,19 @@ Fare is computed based on:
 
 ### Geospatial Driver Discovery
 
-Driver Service uses **geohash indexing** to quickly locate nearby drivers.
+Driver Service uses **geohash indexing** to quickly locate nearby drivers. For carpooling, the service filters drivers by path overlap and available seats.
 
 ---
+
+### Carpool Engine & Multi-Trip Queue
+
+The system supports sophisticated carpooling logic:
+
+*   **Real-time Seat Management**: Drivers track available seats, which update optimistically on acceptance and synchronize with the backend.
+*   **Multi-Trip Request Queue**: Drivers can receive and queue multiple ride requests while en route.
+*   **Path Overlap Heuristic**: The engine logic ensures riders are only matched with drivers whose current routes significantly overlap, maximizing vehicle utility.
+*   **Dynamic Fare Scaling**: Fares are automatically adjusted based on seat count and carpool participation.
+
 
 ### Failure Handling
 
