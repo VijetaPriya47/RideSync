@@ -10,7 +10,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'RideSync,
+  title: 'RideSync',
   tagline: 'Event-driven ride-sharing backend docs',
   favicon: 'img/favicon.ico',
 
