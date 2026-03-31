@@ -10,7 +10,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Hybrid Logistics Engine',
+  title: 'RideSync,
   tagline: 'Event-driven ride-sharing backend docs',
   favicon: 'img/favicon.ico',
 
@@ -23,12 +23,12 @@ const config = {
   url: 'https://VijetaPriya47.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/Hybrid-Logistics-Engine/',
+  baseUrl: '/RideSync/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'VijetaPriya47', // Usually your GitHub org/user name.
-  projectName: 'Hybrid-Logistics-Engine', // Usually your repo name.
+  projectName: 'RideSync', // Usually your repo name.
 
   markdown: {
     mermaid: true,
@@ -56,7 +56,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/tree/main/docs-site/',
+            'https://github.com/VijetaPriya47/RideSync/tree/main/docs-site/',
         },
         blog: {
           showReadingTime: true,
@@ -67,7 +67,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine/tree/main/docs-site/',
+            'https://github.com/VijetaPriya47/RideSync/tree/main/docs-site/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -91,9 +91,9 @@ const config = {
         respectPrefersColorScheme: false,
       },
       navbar: {
-        title: 'Hybrid Logistics Engine',
+        title: 'RideSync',
         logo: {
-          alt: 'Hybrid Logistics Engine Logo',
+          alt: 'RideSync Logo',
           src: 'img/logo.svg',
         },
         items: [
@@ -104,7 +104,7 @@ const config = {
             label: 'Documentation',
           },
           {
-            href: 'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine',
+            href: 'https://github.com/VijetaPriya47/RideSync',
             label: 'GitHub',
             position: 'right',
           },
@@ -127,7 +127,7 @@ const config = {
             items: [
               {
                 label: 'GitHub Repository',
-                href: 'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine',
+                href: 'https://github.com/VijetaPriya47/RideSync',
               },
             ],
           },
@@ -136,12 +136,12 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/VijetaPriya47/Hybrid-Logistics-Engine',
+                href: 'https://github.com/VijetaPriya47/RideSync',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Hybrid Logistics Engine. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} RideSync. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,
