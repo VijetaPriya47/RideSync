@@ -10,7 +10,13 @@ RUN npm install
 # Copy source files
 COPY web ./
 
-# Ensure the standalone output is configured in next.config.ts (we already did this)
+# IMPORTANT: These must be set BEFORE 'npm run build' for Next.js to bake them in
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WEBSOCKET_URL
+ENV NEXT_PUBLIC_WEBSOCKET_URL=$NEXT_PUBLIC_WEBSOCKET_URL
+
+# Ensure the standalone output is configured in next.config.ts
 RUN npm run build
 
 # Stage 2: Runner
