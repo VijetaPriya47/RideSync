@@ -20,8 +20,7 @@ WORKDIR /app
 ENV NODE_ENV production
 
 # Only copy necessary files from builder
-# Next.js standalone mode requires these three things:
-COPY --from=builder /app/public ./public
+# Next.js standalone mode requires these two things (public is optional and omitted because it is missing):
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
