@@ -238,7 +238,8 @@ func handleUpdateTripSeats(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	payload, _ := json.Marshal(reqBody)
-	resp, err := http.Post("http://trip-service:8080/fares/update-seats", "application/json", strings.NewReader(string(payload)))
+	tripServiceHttpUrl := env.GetString("TRIP_SERVICE_HTTP_URL", "http://ridesync:8080")
+	resp, err := http.Post(fmt.Sprintf("%s/fares/update-seats", tripServiceHttpUrl), "application/json", strings.NewReader(string(payload)))
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
