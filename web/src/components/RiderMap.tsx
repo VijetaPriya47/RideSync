@@ -74,6 +74,8 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const [search, setSearch] = useState({ pickup: '', destination: '' })
     const [suggestions, setSuggestions] = useState<{ pickup: any[], destination: any[] }>({ pickup: [], destination: [] })
     const [isSearching, setIsSearching] = useState({ pickup: false, destination: false })
+    const [isGPSTracking, setIsGPSTracking] = useState(false)
+    const [gpsAvailable, setGpsAvailable] = useState(true)
 
     const mapRef = useRef<L.Map>(null)
     const userID = useMemo(() => crypto.randomUUID(), [])
@@ -88,6 +90,34 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         resetTripStatus,
         setTripStatus
     } = useRiderStreamConnection(location, userID);
+
+    // Auto-center on user's real location once on mount
+    useEffect(() => {
+        if (!navigator.geolocation) { setGpsAvailable(false); return; }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+            },
+            () => setGpsAvailable(false),
+            { enableHighAccuracy: true, timeout: 8000 }
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Live GPS tracking when enabled
+    useEffect(() => {
+        if (!isGPSTracking) return;
+        const watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+                setLocation(coords);
+                setSearch(prev => ({ ...prev, pickup: 'My Location (GPS)' }));
+            },
+            () => { setIsGPSTracking(false); },
+            { enableHighAccuracy: true }
+        );
+        return () => navigator.geolocation.clearWatch(watchId);
+    }, [isGPSTracking]);
 
     const handleSearch = (query: string, type: 'pickup' | 'destination') => {
         setSearch(prev => ({ ...prev, [type]: query }));
@@ -339,6 +369,37 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                     )}
                     <MapClickHandler onClick={handleMapClick} />
                 </MapContainer>
+
+                {/* Google Maps-style My Location FAB */}
+                {gpsAvailable && (
+                    <button
+                        onClick={() => setIsGPSTracking(prev => !prev)}
+                        title={isGPSTracking ? 'GPS Tracking Active' : 'Center on my location'}
+                        className="absolute bottom-6 right-4 z-[1000] w-10 h-10 bg-white rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.3)] border border-gray-200 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-150"
+                    >
+                        {isGPSTracking ? (
+                            /* Filled blue dot — active GPS */
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                <circle cx="12" cy="12" r="8" fill="#1A73E8" opacity="0.2" />
+                                <circle cx="12" cy="12" r="4" fill="#1A73E8" />
+                                <line x1="12" y1="2" x2="12" y2="6" stroke="#1A73E8" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="12" y1="18" x2="12" y2="22" stroke="#1A73E8" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="2" y1="12" x2="6" y2="12" stroke="#1A73E8" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="18" y1="12" x2="22" y2="12" stroke="#1A73E8" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                        ) : (
+                            /* Outlined crosshair — idle */
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                <circle cx="12" cy="12" r="7" fill="none" stroke="#5F6368" strokeWidth="2" />
+                                <circle cx="12" cy="12" r="2" fill="#5F6368" />
+                                <line x1="12" y1="2" x2="12" y2="5" stroke="#5F6368" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="12" y1="19" x2="12" y2="22" stroke="#5F6368" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="2" y1="12" x2="5" y2="12" stroke="#5F6368" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="19" y1="12" x2="22" y2="12" stroke="#5F6368" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                        )}
+                    </button>
+                )}
             </div>
 
             <div className="flex flex-col w-full md:w-[450px] bg-white border-l border-gray-100">
