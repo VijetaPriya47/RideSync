@@ -239,7 +239,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
     return (
         <div className="relative flex flex-col md:flex-row h-screen font-sans">
-            <div className={`${destination ? 'flex-[0.7]' : 'flex-1'} relative`}>
+            <div className="flex-1 relative">
                 {/* Search Panel Overlay */}
                 <div className="absolute top-4 left-4 right-4 z-[9999] max-w-md mx-auto md:mx-0">
                     <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-3 flex flex-col gap-2">
@@ -341,7 +341,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
                 </MapContainer>
             </div>
 
-            <div className="flex-[0.3] md:flex-[0.4] bg-white border-l border-gray-100">
+            <div className="flex flex-col w-full md:w-[450px] bg-white border-l border-gray-100">
                 <RiderTripOverview
                     trip={trip}
                     selectedFare={selectedCarPackage}

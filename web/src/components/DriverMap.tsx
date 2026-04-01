@@ -250,7 +250,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
         </div>
       </div>
 
-      <div className="flex flex-col md:w-[400px] bg-white border-t md:border-t-0 md:border-l">
+      <div className="flex flex-col w-full md:w-[450px] bg-white border-t md:border-t-0 md:border-l border-gray-100">
         <div className="p-4 border-b">
           <DriverCard driver={driver} packageSlug={packageSlug} />
         </div>
