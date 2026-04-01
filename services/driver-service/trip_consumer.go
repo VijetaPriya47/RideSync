@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"ride-sharing/shared/contracts"
+	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -23,7 +24,7 @@ func NewTripConsumer(rabbitmq *messaging.RabbitMQ, service *Service) *tripConsum
 	return &tripConsumer{
 		rabbitmq:   rabbitmq,
 		service:    service,
-		tripSvcURL: "http://trip-service:8080",
+		tripSvcURL: env.GetString("TRIP_SERVICE_HTTP_URL", "http://ridesync:8080"),
 	}
 }
 
