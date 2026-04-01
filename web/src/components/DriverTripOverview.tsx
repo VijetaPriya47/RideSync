@@ -3,6 +3,7 @@ import { Trip, Route } from "../types"
 import { TripOverviewCard } from "./TripOverviewCard"
 import { Button } from "./ui/button"
 import { TripEvents } from "../contracts"
+import { haversineDistanceKm } from "../utils/math"
 
 // Bounding box overlap heuristic: check if any point in the new request's route
 // falls within the accepted trip's route bounding box (± 0.005 deg ≈ 0.5 km)
@@ -36,6 +37,10 @@ interface DriverTripOverviewProps {
   activeTrip?: Trip | null;
   onAcceptPending?: (trip: Trip) => void;
   onDeclinePending?: (trip: Trip) => void;
+  /** Driver's current GPS location */
+  driverLocation?: { latitude: number; longitude: number } | null;
+  /** Pickup location from the requested trip's route */
+  pickupLocation?: { latitude: number; longitude: number } | null;
 }
 
 export const DriverTripOverview = ({
@@ -48,6 +53,8 @@ export const DriverTripOverview = ({
   activeTrip,
   onAcceptPending,
   onDeclinePending,
+  driverLocation,
+  pickupLocation,
 }: DriverTripOverviewProps) => {
   const [timeLeft, setTimeLeft] = React.useState(120);
 
@@ -82,6 +89,13 @@ export const DriverTripOverview = ({
     const rawFare = trip.selectedFare?.totalPriceInCents || 0;
     const formattedFare = ((rawFare * seatsRequested) / 100).toFixed(2);
 
+    // Distance from driver to pickup
+    const distanceToPickup =
+      driverLocation && pickupLocation
+        ? haversineDistanceKm(driverLocation.latitude, driverLocation.longitude, pickupLocation.latitude, pickupLocation.longitude)
+        : null;
+    const etaMinutes = distanceToPickup !== null ? Math.max(1, Math.round((distanceToPickup / 30) * 60)) : null;
+
     return (
       <TripOverviewCard
         title="Trip request received!"
@@ -90,13 +104,19 @@ export const DriverTripOverview = ({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col items-center justify-center -mt-2 mb-2">
             <div className="text-2xl font-black text-green-700 bg-green-50 px-6 py-3 rounded-2xl border-2 border-green-200 shadow-sm text-center transition-all duration-300 transform font-mono">
-              Offered Fare: ${rawFare > 0 ? formattedFare : "Calculating..."}
+              Offered Fare: ₹{rawFare > 0 ? formattedFare : "Calculating..."}
             </div>
             {trip.selectedFare?.packageSlug === 'carpool' && (
               <p className="text-sm font-bold text-blue-600 mt-2 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                 Carpool: {seatsRequested} seat{seatsRequested !== 1 ? 's' : ''}
               </p>
+            )}
+            {distanceToPickup !== null && (
+              <div className="flex items-center gap-2 mt-2 bg-blue-50 border border-blue-200 px-4 py-2 rounded-xl text-sm font-semibold text-blue-700">
+                <span>📍</span>
+                <span>{distanceToPickup.toFixed(1)} km away · ~{etaMinutes} min to pickup</span>
+              </div>
             )}
           </div>
 
@@ -192,7 +212,7 @@ export const DriverTripOverview = ({
                         <p className="text-xs text-gray-400 truncate max-w-[180px]">Rider: {req.userID}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className="text-base font-bold text-green-700 font-mono">${fare}</span>
+                        <span className="text-base font-bold text-green-700 font-mono">₹{fare}</span>
                         <span className="text-xs bg-green-50 text-green-700 border border-green-200 rounded-full px-2 py-0.5 font-medium">
                           Route match ✓
                         </span>

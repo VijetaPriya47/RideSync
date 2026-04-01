@@ -121,12 +121,26 @@ export const RiderTripOverview = ({
     return (
       <TripOverviewCard
         title="Driver assigned!"
-        description="Your driver is on the way, waiting for payment confirmation to show..."
+        description="Your driver is on the way to pick you up."
       >
-        <div className="flex flex-col space-y-3 justify-center items-center mb-4">
-          {/* <p>Driver: {trip.id}</p> */}
+        <div className="flex flex-col gap-4">
+          {/* Pulsing arrival badge */}
+          <div className="flex flex-col items-center gap-3 py-2">
+            <div className="relative flex items-center justify-center w-16 h-16">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-40 animate-ping" />
+              <span className="relative flex items-center justify-center w-12 h-12 rounded-full bg-blue-500 text-white text-2xl">🚗</span>
+            </div>
+            <div className="text-center">
+              <p className="text-base font-semibold text-gray-800">Your driver is en route</p>
+              <p className="text-sm text-gray-500 mt-1">Estimated arrival: <span className="font-bold text-blue-600">5–15 min</span></p>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-sm text-blue-700 text-center font-medium">
+            📍 Driver is heading to your pickup location
+          </div>
         </div>
-        <Button variant="destructive" className="w-full" onClick={onCancel}>
+        <Button variant="destructive" className="w-full mt-4" onClick={onCancel}>
           Cancel current trip
         </Button>
       </TripOverviewCard>
@@ -173,7 +187,7 @@ export const RiderTripOverview = ({
           </div>
           {selectedFare && (
             <div className="text-xl font-bold text-gray-800 mt-4 bg-green-50 px-4 py-2 rounded-lg border border-green-200 shadow-sm transition-all duration-300 transform">
-              Offering: ${(((selectedFare.totalPriceInCents || 0) * (selectedFare.packageSlug === 'carpool' ? (selectedFare.requestedSeats || 1) : 1)) / 100).toFixed(2)}
+              Offering: ₹{(((selectedFare.totalPriceInCents || 0) * (selectedFare.packageSlug === 'carpool' ? (selectedFare.requestedSeats || 1) : 1)) / 100).toFixed(2)}
             </div>
           )}
           <div className="flex flex-col items-center justify-center mt-6 group relative">

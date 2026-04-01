@@ -52,7 +52,7 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
             const Icon = PackagesMeta[fare.packageSlug].icon;
             const isCarpool = fare.packageSlug === 'carpool';
             const multiplier = isCarpool ? carpoolSeats : 1;
-            const price = fare.totalPriceInCents && `$${((fare.totalPriceInCents * multiplier) / 100).toFixed(2)}`
+            const price = fare.totalPriceInCents && `₹${((fare.totalPriceInCents * multiplier) / 100).toFixed(2)}`
 
             return (
               <div

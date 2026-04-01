@@ -265,6 +265,12 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
             activeTrip={activeTrip}
             onAcceptPending={acceptPendingRequest}
             onDeclinePending={declinePendingRequest}
+            driverLocation={riderLocation}
+            pickupLocation={
+              requestedTrip?.route?.geometry?.[0]?.coordinates?.[0]
+                ? { latitude: requestedTrip.route.geometry[0].coordinates[0].latitude, longitude: requestedTrip.route.geometry[0].coordinates[0].longitude }
+                : null
+            }
           />
         </div>
       </div>
