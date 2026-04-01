@@ -38,8 +38,9 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
   }
 
   return (
-    <div className="flex items-center justify-center p-4 min-h-screen bg-black/20">
-      <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full">
+    <div className="flex flex-col h-full w-full bg-white">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-6">
         <h2 className="text-xl font-semibold mb-2">Select your desired ride</h2>
         <p className="text-sm text-gray-500 mb-6">Routing for {convertMetersToKilometers(trip?.distance ?? 0)}</p>
         <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
@@ -111,16 +112,15 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
             );
           })}
         </div>
-        <div className="mt-6">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => onCancel()}
-          >
-            Back to Map
-          </Button>
-        </div>
+      </div>
+
+      {/* Sticky footer — always visible */}
+      <div className="p-4 border-t bg-white shrink-0">
+        <Button variant="outline" className="w-full" onClick={() => onCancel()}>
+          Back to Map
+        </Button>
       </div>
     </div>
   )
+
 }
