@@ -12,6 +12,7 @@ import (
 	"ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"ride-sharing/services/trip-service/internal/service"
+	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/db"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
@@ -85,7 +86,7 @@ func main() {
 		seatSync = drvClient
 	}
 
-	driverConsumer := events.NewDriverConsumer(rabbitmq, svc, seatSync)
+	driverConsumer := events.NewDriverConsumer(rabbitmq, svc, mongoDBRepo, seatSync)
 	go driverConsumer.Listen()
 
 	// Initialize the gRPC server
@@ -105,11 +106,65 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/trips/", func(w http.ResponseWriter, r *http.Request) {
-		tripID := strings.TrimPrefix(r.URL.Path, "/trips/")
+		// Handle /trips/{id}/verify-otp
+		path := strings.TrimPrefix(r.URL.Path, "/trips/")
+		parts := strings.SplitN(path, "/", 2)
+		tripID := parts[0]
 		if tripID == "" {
 			http.Error(w, "tripID is required", http.StatusBadRequest)
 			return
 		}
+
+		if len(parts) == 2 && parts[1] == "verify-otp" && r.Method == http.MethodPost {
+			var req struct {
+				DriverID string `json:"driverID"`
+				OTP      string `json:"otp"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			ok, err := svc.VerifyTripOTP(r.Context(), tripID, req.DriverID, req.OTP)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if !ok {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				json.NewEncoder(w).Encode(map[string]string{"message": "invalid OTP"})
+				return
+			}
+			// OTP verified — now emit payment event
+			trip, err := svc.GetTripByID(r.Context(), tripID)
+			if err != nil || trip == nil || trip.Driver == nil || trip.RideFare == nil {
+				http.Error(w, "trip or fare data missing", http.StatusInternalServerError)
+				return
+			}
+			marshalledPayload, err := json.Marshal(messaging.PaymentTripResponseData{
+				TripID:   tripID,
+				UserID:   trip.UserID,
+				DriverID: trip.Driver.ID,
+				Amount:   trip.RideFare.TotalPriceInCents,
+				Currency: "USD",
+			})
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if err := rabbitmq.PublishMessage(r.Context(), contracts.PaymentCmdCreateSession, contracts.AmqpMessage{
+				OwnerID: trip.UserID,
+				Data:    marshalledPayload,
+			}); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			return
+		}
+
+		// Default: GET /trips/{id}
 		trip, err := svc.GetTripByID(r.Context(), tripID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

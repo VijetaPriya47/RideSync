@@ -170,3 +170,21 @@ func (r *mongoRepository) UpdateRideFareSeats(ctx context.Context, fareID string
 	}
 	return nil
 }
+
+func (r *mongoRepository) SetTripOTP(ctx context.Context, tripID, otp string) error {
+	_id, err := primitive.ObjectIDFromHex(tripID)
+	if err != nil {
+		return err
+	}
+
+	res, err := r.db.Collection(db.TripsCollection).UpdateOne(ctx, bson.M{"_id": _id}, bson.M{
+		"$set": bson.M{"otp": otp},
+	})
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("trip not found: %s", tripID)
+	}
+	return nil
+}

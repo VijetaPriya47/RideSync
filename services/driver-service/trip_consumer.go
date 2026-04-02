@@ -215,7 +215,7 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	for _, id := range allSuitableIDs {
 		if !triedMap[id] {
 			if payload.Trip.SelectedFare.PackageSlug == "carpool" {
-				if c.checkDriverOverlap(id, payload.Trip.Route) {
+				if c.checkDriverOverlap(id, payload.Trip.Route) && c.service.GetDriverPackageSlug(id) == "carpool" {
 					suitableIDs = append(suitableIDs, id)
 				}
 			} else {

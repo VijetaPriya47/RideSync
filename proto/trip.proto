@@ -8,6 +8,7 @@ service TripService {
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
   rpc CreateTrip(CreateTripRequest) returns (CreateTripResponse);
   rpc IncreaseTripFare(IncreaseTripFareRequest) returns (IncreaseTripFareResponse);
+  rpc VerifyTripOTP(VerifyTripOTPRequest) returns (VerifyTripOTPResponse);
 }
 
 message PreviewTripRequest {
@@ -63,6 +64,7 @@ message Trip {
   string status = 4;
   string userID = 5;
   TripDriver driver = 6;
+  string otp = 7;
 }
 
 message TripDriver {
@@ -80,4 +82,15 @@ message IncreaseTripFareRequest {
 
 message IncreaseTripFareResponse {
   Trip trip = 1;
+}
+
+message VerifyTripOTPRequest {
+  string tripID = 1;
+  string driverID = 2;
+  string otp = 3;
+}
+
+message VerifyTripOTPResponse {
+  bool success = 1;
+  string message = 2;
 }

@@ -36,6 +36,7 @@ type TripModel struct {
 	Status   string             `bson:"status"`
 	RideFare *RideFareModel     `bson:"rideFare"`
 	Driver   *TripDriver        `bson:"driver"`
+	OTP      string             `bson:"otp,omitempty" json:"otp,omitempty"`
 }
 
 func (t *TripModel) ToProto() *pb.Trip {
@@ -58,6 +59,7 @@ type TripRepository interface {
 	UpdateRideFareTotal(ctx context.Context, fareID string, totalPriceInCents float64) error
 	UpdateTripRideFareTotal(ctx context.Context, tripID string, totalPriceInCents float64) error
 	UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error
+	SetTripOTP(ctx context.Context, tripID, otp string) error
 }
 
 type TripService interface {
@@ -75,4 +77,5 @@ type TripService interface {
 	GetTripByID(ctx context.Context, id string) (*TripModel, error)
 	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
 	IncreaseTripFare(ctx context.Context, tripID, userID string, totalPriceInCents float64) (*TripModel, error)
+	VerifyTripOTP(ctx context.Context, tripID, driverID, otp string) (bool, error)
 }

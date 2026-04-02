@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"ride-sharing/services/trip-service/internal/domain"
 	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/messaging"
@@ -18,16 +19,22 @@ type SeatNotifier interface {
 	NotifyTripAcceptedSeats(ctx context.Context, driverID, tripID string, seats int32)
 }
 
+func generateOTP() string {
+	return fmt.Sprintf("%04d", rand.Intn(10000))
+}
+
 type driverConsumer struct {
 	rabbitmq     *messaging.RabbitMQ
 	service      domain.TripService
+	repo         domain.TripRepository
 	seatNotifier SeatNotifier
 }
 
-func NewDriverConsumer(rabbitmq *messaging.RabbitMQ, service domain.TripService, seatNotifier SeatNotifier) *driverConsumer {
+func NewDriverConsumer(rabbitmq *messaging.RabbitMQ, service domain.TripService, repo domain.TripRepository, seatNotifier SeatNotifier) *driverConsumer {
 	return &driverConsumer{
 		rabbitmq:     rabbitmq,
 		service:      service,
+		repo:         repo,
 		seatNotifier: seatNotifier,
 	}
 }
@@ -126,11 +133,20 @@ func (c *driverConsumer) handleTripAccepted(ctx context.Context, tripID string, 
 		c.seatNotifier.NotifyTripAcceptedSeats(ctx, driver.Id, tripID, seats)
 	}
 
+	// Generate and persist an OTP for this trip
+	otp := generateOTP()
+	if err := c.repo.SetTripOTP(ctx, tripID, otp); err != nil {
+		log.Printf("WARN: failed to set OTP for trip %s: %v", tripID, err)
+		// Non-fatal: continue
+	}
+	trip.OTP = otp
+
 	marshalledTrip, err := json.Marshal(trip)
 	if err != nil {
 		return err
 	}
 
+	// Notify rider: driver assigned + OTP embedded
 	if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventDriverAssigned, contracts.AmqpMessage{
 		OwnerID: trip.UserID,
 		Data:    marshalledTrip,
@@ -138,25 +154,6 @@ func (c *driverConsumer) handleTripAccepted(ctx context.Context, tripID string, 
 		return err
 	}
 
-	marshalledPayload, err := json.Marshal(messaging.PaymentTripResponseData{
-		TripID:   tripID,
-		UserID:   trip.UserID,
-		DriverID: driver.Id,
-		Amount:   trip.RideFare.TotalPriceInCents,
-		Currency: "USD",
-	})
-	if err != nil {
-		return err
-	}
-
-	if err := c.rabbitmq.PublishMessage(ctx, contracts.PaymentCmdCreateSession,
-		contracts.AmqpMessage{
-			OwnerID: trip.UserID,
-			Data:    marshalledPayload,
-		},
-	); err != nil {
-		return err
-	}
-
+	// NOTE: Payment session is now created AFTER the driver verifies the OTP via POST /trip/{id}/verify-otp
 	return nil
 }
