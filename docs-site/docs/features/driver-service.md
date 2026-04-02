@@ -344,4 +344,4 @@ All terminal states return a native Go error, which forces an AMQP `Reject(false
 
 ## 4. Driver Dispatch Case Study
 
-See the full [Driver Dispatch Case Study](./case-study-driver-dispatch) for scenario walkthroughs of the success, timeout, and race condition edge cases.
+See the full [Driver Dispatch Case Study](../architecture/case-study-driver-dispatch) for scenario walkthroughs of the success, timeout, and race condition edge cases.

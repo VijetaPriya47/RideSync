@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	randv2 "math/rand/v2"
 	pbd "ride-sharing/shared/proto/driver"
 	pb "ride-sharing/shared/proto/trip"
