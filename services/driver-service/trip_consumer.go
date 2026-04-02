@@ -194,7 +194,7 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	if n := payload.Trip.SelectedFare.GetRequestedSeats(); n > 0 {
 		reqSeats = n
 	}
-	allSuitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug, reqSeats, payload.Trip.Route)
+	allSuitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug, reqSeats, payload.Trip.Route, len(payload.TriedDriverIDs))
 
 	// Filter out already tried drivers AND check overlapping logic if they have active trips
 	var suitableIDs []string

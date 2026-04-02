@@ -112,9 +112,30 @@ To tackle overlapping efficiently at scale, the backend must implement **partial
 
 ---
 
+## Scenario 5: Radius-Based Smart Polling
+*Instead of broadcasting to all drivers globally, the system attempts to find the closest drivers first and expands its search outward.*
+
+### Technical Workflow
+1. **Initial Queue:** The `trip.requested` event begins inside the DLX retry loop.
+2. **Attempt Array Tracker:** The payload carries an array of `TriedDriverIDs`. The length of this array (`len(payload.TriedDriverIDs)`) dictates the current "attempt iteration" counter.
+3. **Haversine Distance Filter:** When the Driver Service loops over its active memory pool, it passes the attempt iteration. 
+   - Iteration 0: `MaxRadius = 1.0 km`
+   - Iteration 1: `MaxRadius = 3.0 km`
+   - Iteration 2: `MaxRadius = 5.0 km`
+   - Iteration 3: `MaxRadius = 10.0 km`
+   - Iteration 4+: `MaxRadius = 100.0 km`
+4. The service filters all online drivers through the Haversine calculating distance from the trip's starting coordinates to the driver's active GPS coordinate.
+5. If the resulting Array is empty after radius filtering, the loop drops it directly into the 10-second `search_retry_queue` Dead Letter Queue to try the next, wider radius bracket.
+
+---
+
 ## Infrastructure Impact
 - **HPA Scaling:** `Driver Service` scales based on the `rabbitmq_queue_depth` of `find_available_drivers`. If the queue grows, K8s spins up more pods to handle the load.
 - **Database Load:** Atomic updates ensure we don't need complex distributed locks (Redis Redlock), keeping the MongoDB write-load predictable and lightweight.
 
+### Redis Geospatial Upgrade Path
+Currently, the Driver Service scans drivers via an in-memory array filtered by Geohashes and Haversine math. As the platform transitions to Tier-1 traffic (100k+ active drivers), the architecture is designed to easily swap out the native matching algorithm for **Redis Geospatial Data Structures**.
+Instead of holding states locally, driver apps would stream WebSocket coordinates directly to a shared `GEORADIUS` cache in Redis. The matching engine would execute `GEOSEARCH key FROM LON LAT BYRADIUS 5 km ASC`, returning computationally cheap, exact subset ranges without tying up the Go runtime garbage collector.
+
 > [!IMPORTANT]
-> The Distributed CAS pattern is the backbone of our 99.9% consistency in the dispatch loop, while the native Go geospatial clipping preserves driver WebSocket bandwidth during high-concurrency carpool searches.
+> The Distributed CAS pattern is the backbone of our 99.9% consistency in the dispatch loop, while the dynamically expanding AMQP radius filter and native Go geospatial clipping preserves driver WebSocket bandwidth during high-concurrency searches.

@@ -38,7 +38,24 @@ func defaultCapacity(packageSlug string, requested int32) int32 {
 	return 1
 }
 
-func (s *Service) FindAvailableDrivers(packageType string, requestedSeats int32, tripRoute *pb.Route) []string {
+func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const earthRadiusKm = 6371.0
+	
+	lat1Rad := lat1 * math.Pi / 180
+	lon1Rad := lon1 * math.Pi / 180
+	lat2Rad := lat2 * math.Pi / 180
+	lon2Rad := lon2 * math.Pi / 180
+	
+	dlat := lat2Rad - lat1Rad
+	dlon := lon2Rad - lon1Rad
+	
+	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1Rad)*math.Cos(lat2Rad)*math.Sin(dlon/2)*math.Sin(dlon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	
+	return earthRadiusKm * c
+}
+
+func (s *Service) FindAvailableDrivers(packageType string, requestedSeats int32, tripRoute *pb.Route, attemptIndex int) []string {
 	if requestedSeats < 1 {
 		requestedSeats = 1
 	}
@@ -48,8 +65,26 @@ func (s *Service) FindAvailableDrivers(packageType string, requestedSeats int32,
 
 	var matchingDrivers []string
 	
+	var pickupLat, pickupLon float64
+	hasPickup := false
 	if tripRoute != nil && len(tripRoute.Geometry) > 0 && len(tripRoute.Geometry[0].Coordinates) > 0 {
-		// tripStart is no longer needed since we relaxed the geohash check
+		pickupLat = tripRoute.Geometry[0].Coordinates[0].Latitude
+		pickupLon = tripRoute.Geometry[0].Coordinates[0].Longitude
+		hasPickup = true
+	}
+
+	var maxRadiusKm float64
+	switch attemptIndex {
+	case 0:
+		maxRadiusKm = 1.0
+	case 1:
+		maxRadiusKm = 3.0
+	case 2:
+		maxRadiusKm = 5.0
+	case 3:
+		maxRadiusKm = 10.0
+	default:
+		maxRadiusKm = 100.0
 	}
 
 	for _, d := range s.drivers {
@@ -60,9 +95,13 @@ func (s *Service) FindAvailableDrivers(packageType string, requestedSeats int32,
 			continue
 		}
 		
-		// No proximity check for carpool drivers on active trips for now.
-		// The frontend handles accurate route overlap filtering, and
-		// this allows matching even if mocked driver locations are stale.
+		// If we know the pickup location, filter by radius!
+		if hasPickup && d.Driver.Location != nil {
+			dist := haversineDistance(pickupLat, pickupLon, d.Driver.Location.Latitude, d.Driver.Location.Longitude)
+			if dist > maxRadiusKm {
+				continue
+			}
+		}
 
 		matchingDrivers = append(matchingDrivers, d.Driver.Id)
 	}
