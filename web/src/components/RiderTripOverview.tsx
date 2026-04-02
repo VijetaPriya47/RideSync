@@ -118,7 +118,7 @@ export const RiderTripOverview = ({
   */
 
   if (status === TripEvents.DriverAssigned) {
-    const otp: string | null = (trip as any)?.otp ?? null;
+    const otp: string | null = (trip as { otp?: string })?.otp ?? null;
     return (
       <TripOverviewCard
         title="Driver assigned!"
