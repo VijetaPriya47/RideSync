@@ -67,7 +67,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     packageSlug,
   })
 
-  const [isGPSTracking, setIsGPSTracking] = useState(false);
+  const [isGPSTracking, setIsGPSTracking] = useState(true);
 
   // GPS Tracking logic
   useMemo(() => {

@@ -214,4 +214,22 @@ sequenceDiagram
 - [Microservices Design Principles - Microservices.io](https://microservices.io/patterns/microservices.html)
 - [The 12-Factor App Principles](https://12factor.net/)
 
+---
+
+## 6. Architecture Optimizations (Project Delhi Rollout)
+During the "Project Delhi" rollout, several system tradeoffs were executed to harden the system for real-world high-concurrency deployment.
+
+### 6.1 Persistent Driver Search Retry Workflow
+The original behavior frequently dropped rides if a driver failed to accept within immediately sequential polling. We ensured a ride request lives for 120 seconds, continuously polling available drivers in a 10-second repeating loop.
+-   **Approach Chosen:** RabbitMQ Dead Letter Exchange (DLX) with Message TTLs. 
+-   **Why:** Rather than introducing an entirely new stateful dependency (like a Redis Scheduler or Cron job) to retry assignments, we leveraged the existing AMQP infrastructure. Messages failing to find a driver get dropped into a short TTL queue and bounce back into the main exchange automatically.
+
+### 6.2 Frontend Stabilization & Map Rendering (Leaflet)
+-   **Map Markers Optimization:** Standard `.png` or external Wikimedia SVG links failed reliably due to CORS/Hotlinking restrictions. We removed external dependencies and built native CSS/HTML markers using Leaflet's `L.divIcon` (pulsing CSS animations for pickup dots, etc).
+
+### 6.3 Smart Ride Locator: Bounded Search & Debouncing
+The transition to Nominatim OpenStreetMap (OSM) for the "Where To?" input required strict API management. 
+-   **Debouncing Added:** Implemented a 500-millisecond delay to prevent React's `onChange` event from firing an HTTP request per keystroke, solving HTTP 429 (Too Many Requests) API limits.
+-   **Regional Bias:** Added a bounding box (`viewbox`) specifically targeting the New Delhi coordinates to the search query map. This means the engine prioritizes places in Delhi over generic places globally.
+
 

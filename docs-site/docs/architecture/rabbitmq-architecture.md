@@ -1,9 +1,9 @@
 ---
 sidebar_position: 4
-title: Event-Driven Flow (RabbitMQ)
+title: RabbitMQ Event & Queue Architecture
 ---
 
-# The Asynchronous Journey
+# The Asynchronous Journey (RabbitMQ)
 
 The Hybrid Logistics Engine uses an event-driven architecture. Instead of services waiting synchronously for each other to finish (which causes bottlenecks), they emit events to a central RabbitMQ exchange (`TripExchange`) and immediately return to processing the next request.
 
@@ -120,12 +120,41 @@ Notice how the Trip Service doesn't talk to Stripe? It delegates!
 
 ---
 
-### Why so many queues?
-By isolating responsibilities, if the `Payment Service` crashes while dialing Stripe, only the `PaymentTripResponseQueue` backs up. The `Driver Service` can continue churning through thousands of new trip dispatches completely unaffected. When the Payment Service reboots, it simply picks up right where it left off!
+## 7. RabbitMQ Queue Registry
 
-## RabbitMQ Resources
+The system relies on dedicated RabbitMQ queues to handle all events. Below is an exhaustive list.
 
-- [RabbitMQ Tutorial: Hello World (Go)](https://www.rabbitmq.com/tutorials/tutorial-one-go)
+### Trip & Driver Search (4 Queues)
+1. **`find_available_drivers`**: Backbone of the matching engine. It receives `TripEventCreated` and `TripEventDriverNotInterested` events. The driver service processes this queue to locate the next available matching driver. (120s TTL)
+2. **`search_retry_queue`**: Implements the interval driver search headless wait queue with a strict 10s TTL. When a message expires here, it routes back to the main `TripExchange`.
+3. **`driver_cmd_trip_request`**: Carries direct command payloads addressed to a specific Driver ID to offer them a ride. API Gateway pushes this to Websockets.
+4. **`driver_trip_response`**: The inbound pipe from the drivers. API gateway pushes "Accept/Decline" clicks so the Trip service can lock the trip.
+
+### API Gateway / WebSocket Notifications (4 Queues)
+5. **`notify_trip_created`**: Signals to the rider UI that the trip has begun the distributed driver search successfully. 
+6. **`notify_driver_assign`**: Sends an alert to the rider UI that a driver has successfully accepted their ride request, providing driver details (name, car, ETA).
+7. **`notify_driver_no_drivers_found`**: Specifically handles the frontend alert triggered when the matching engine exhausts all active drivers (or the DLQ handles a timeout) and gives up.
+8. **`dead_letter_queue`**: The ultimate fallback sink for expired or rejected messages. Handled by `dlq_consumer.go` to dispatch fail-over WebSockets.
+
+### Payment Workflows (3 Queues)
+9. **`payment_trip_response`**: Informs the payment service that a driver has locked a trip, triggering the initial setup of a Stripe checkout session based on the agreed fare.
+10. **`notify_payment_session_created`**: Receives the async Stripe URL. Push into the rider's UI to redirect.
+11. **`payment_success`**: Handles validated incoming Stripe Webhooks to unlock the MongoDB status to "Payed".
+
+---
+
+## 8. Reliability & TTL Strategy
+
+When drivers frequently disconnect or go offline improperly, stale data can accumulate in memory. To resolve this, the RabbitMQ setup utilizes **Dead Letter Exchanges (DLX)** and **Message TTLs (Time-To-Live)** across the entire registry.
+
+### Stale Data Prevention
+If an event like `trip.requested` sits in `find_available_drivers` for too long (120s) without being consumed or correctly handled, it is automatically dropped from the main flow and forwarded to the DLQ. This prevents the system from attempting to match riders with drivers using outdated "ghost" requests that are no longer valid.
+
+### Headless Wait Queues
+The use of `search_retry_queue` as a headless wait queue allows the system to implement a "retry loop" natively in the message broker, keeping the microservices stateless and preventing them from having to manage complex internal timers for search intervals.
+
+---
+
+### External Resources
 - [RabbitMQ Tutorial: Publish/Subscribe (Go)](https://www.rabbitmq.com/tutorials/tutorial-three-go)
 - [AMQP Best Practices: Queue/Topic Design - Stack Overflow](https://stackoverflow.com/questions/32220312/rabbitmq-amqp-best-practice-queue-topic-design-in-a-microservice-architecture)
-
