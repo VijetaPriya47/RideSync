@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	math "math/rand/v2"
+	"math"
+	randv2 "math/rand/v2"
 	pbd "ride-sharing/shared/proto/driver"
 	pb "ride-sharing/shared/proto/trip"
 	"ride-sharing/shared/util"
@@ -76,7 +77,7 @@ func (s *Service) RegisterDriver(driverID, packageSlug string, capacity int32) (
 
 	cap := defaultCapacity(packageSlug, capacity)
 
-	randomIndex := math.IntN(len(PredefinedRoutes))
+	randomIndex := randv2.IntN(len(PredefinedRoutes))
 	randomRoute := PredefinedRoutes[randomIndex]
 
 	randomPlate := GenerateRandomPlate()
