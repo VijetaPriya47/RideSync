@@ -86,11 +86,16 @@ func (s *service) GetRoute(ctx context.Context, waypoints []*types.Coordinate, u
 	url := fmt.Sprintf("%s/route/v1/driving/%s?overview=full&geometries=geojson", baseURL, b.String())
 	log.Printf("Started Fetching from OSRM API: URL: %s", url)
 
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OSRM request: %w", err)
+	}
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	resp, err := client.Get(url)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch route from OSRM API: %w", err)
 	}
