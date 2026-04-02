@@ -57,22 +57,26 @@ func (c *tripConsumer) Listen() error {
 
 // Bounding box heuristic adapted from the frontend: prevents dispatching irrelevant carpool trips.
 type tripStatusResponse struct {
-	Status   string      `json:"status"`
-	Driver   interface{} `json:"driver"`
+	Status   string      `json:"Status"`
+	Driver   interface{} `json:"Driver"`
 	RideFare *struct {
-		TotalPriceInCents float64 `json:"totalPriceInCents"`
+		TotalPriceInCents float64 `json:"TotalPriceInCents"`
 		Route             *struct {
 			Routes []struct {
+				Distance float64 `json:"distance"`
+				Duration float64 `json:"duration"`
 				Geometry struct {
 					Coordinates [][]float64 `json:"coordinates"` // [lon, lat]
 				} `json:"geometry"`
 			} `json:"routes"`
-		} `json:"route"`
+		} `json:"Route"`
 	} `json:"RideFare"`
 }
 
 func routesOverlap(activeTripRoute *struct {
 	Routes []struct {
+		Distance float64 `json:"distance"`
+		Duration float64 `json:"duration"`
 		Geometry struct {
 			Coordinates [][]float64 `json:"coordinates"`
 		} `json:"geometry"`
@@ -149,7 +153,8 @@ func (c *tripConsumer) checkDriverOverlap(driverID string, newRoute *pb.Route) b
 						}
 					} else {
 						resp.Body.Close()
-						return true // Can't fetch route, optimistic 
+						// log.Printf("checkDriverOverlap: missing route data for trip %s", tripID)
+						continue 
 					}
 				}
 			}
@@ -176,7 +181,7 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 					log.Printf("Trip %s already has a driver assigned. Stopping search.", payload.Trip.Id)
 					return nil
 				}
-				if tripStatus.Status == "completed" || tripStatus.Status == "cancelled" {
+				if tripStatus.Status == "completed" || tripStatus.Status == "cancelled" || tripStatus.Status == "accepted" {
 					log.Printf("Trip %s is %s. Stopping search.", payload.Trip.Id, tripStatus.Status)
 					return nil
 				}
