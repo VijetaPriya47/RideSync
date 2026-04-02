@@ -55,7 +55,7 @@ func (c *driverConsumer) Listen() error {
 				return err
 			}
 		case contracts.DriverCmdTripDecline:
-			if err := c.handleTripDeclined(ctx, payload.TripID, payload.RiderID); err != nil {
+			if err := c.handleTripDeclined(ctx, payload.TripID, payload.RiderID, payload.TriedDriverIDs); err != nil {
 				log.Printf("Failed to handle the trip decline: %v", err)
 				return err
 			}
@@ -67,7 +67,7 @@ func (c *driverConsumer) Listen() error {
 	})
 }
 
-func (c *driverConsumer) handleTripDeclined(ctx context.Context, tripID, riderID string) error {
+func (c *driverConsumer) handleTripDeclined(ctx context.Context, tripID, riderID string, triedDriverIDs []string) error {
 	trip, err := c.service.GetTripByID(ctx, tripID)
 	if err != nil {
 		return err
@@ -77,7 +77,8 @@ func (c *driverConsumer) handleTripDeclined(ctx context.Context, tripID, riderID
 	}
 
 	newPayload := messaging.TripEventData{
-		Trip: trip.ToProto(),
+		Trip:           trip.ToProto(),
+		TriedDriverIDs: triedDriverIDs,
 	}
 
 	marshalledPayload, err := json.Marshal(newPayload)

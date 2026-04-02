@@ -88,6 +88,13 @@ function HomeContent() {
               >
                 I Want to Drive
               </Button>
+              <Button
+                className="w-full text-lg py-6 border-2 border-primary/20 text-primary hover:bg-primary/10"
+                variant="ghost"
+                onClick={() => window.open("https://vijetapriya47.github.io/RideSync/", "_blank")}
+              >
+                Documentation Website
+              </Button>
             </div>
           </div>
         </div>

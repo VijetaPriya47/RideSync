@@ -83,6 +83,7 @@ interface DriverResponseToTripResponse {
     tripID: string;
     riderID: string;
     driver: Driver;
+    triedDriverIds?: string[];
   };
 }
 

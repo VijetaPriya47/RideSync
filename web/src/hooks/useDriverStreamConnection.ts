@@ -22,6 +22,7 @@ export const useDriverStreamConnection = ({
   const [requestedTrip, setRequestedTrip] = useState<Trip | null>(null)
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
   const [pendingCarpoolRequests, setPendingCarpoolRequests] = useState<Trip[]>([]);
+  const [triedDriverIdsMap, setTriedDriverIdsMap] = useState<Record<string, string[]>>({});
   const [tripStatus, setTripStatus] = useState<TripEvents | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
@@ -72,7 +73,11 @@ export const useDriverStreamConnection = ({
       switch (message.type) {
         case TripEvents.DriverTripRequest: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const trip = (message.data as any).trip ?? message.data;
+          const payload = message.data as any;
+          const trip = payload.trip ?? payload;
+          if (payload.triedDriverIds) {
+            setTriedDriverIdsMap((prev: Record<string, string[]>) => ({ ...prev, [trip.id]: payload.triedDriverIds }));
+          }
           // If driver already has an active accepted trip, queue this as a pending carpool request
           if (activeTripRef.current) {
             setPendingCarpoolRequests((prev: Trip[]) => [...prev, trip]);
@@ -143,7 +148,7 @@ export const useDriverStreamConnection = ({
     if (!driver) return;
     sendMessage({
       type: TripEvents.DriverTripDecline,
-      data: { tripID: trip.id, riderID: trip.userID, driver },
+      data: { tripID: trip.id, riderID: trip.userID, driver, triedDriverIds: triedDriverIdsMap[trip.id] || [] },
     });
     setPendingCarpoolRequests((prev: Trip[]) => prev.filter((t) => t.id !== trip.id));
   };
@@ -155,5 +160,5 @@ export const useDriverStreamConnection = ({
     });
   };
 
-  return { error, tripStatus, driver, requestedTrip, activeTrip, pendingCarpoolRequests, resetTripStatus, sendMessage, setTripStatus, setActiveTrip, patchDriverSeats, acceptPendingRequest, declinePendingRequest };
+  return { error, tripStatus, driver, requestedTrip, activeTrip, pendingCarpoolRequests, resetTripStatus, sendMessage, setTripStatus, setActiveTrip, patchDriverSeats, acceptPendingRequest, declinePendingRequest, triedDriverIdsMap };
 }

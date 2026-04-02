@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+title: Trip Request TTL Workflow
+---
+
 # Trip Request TTL & DLQ Workflow
 
 To ensure riders aren't left waiting indefinitely when no drivers are available, the system implements a robust **Time-To-Live (TTL)** and **Dead Letter Queue (DLQ)** mechanism.

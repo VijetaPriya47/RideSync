@@ -67,8 +67,11 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 		defer resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			var tripStatus struct {
-				Status string `json:"status"`
+				Status string      `json:"status"`
 				Driver interface{} `json:"driver"`
+				RideFare *struct {
+					TotalPriceInCents float64 `json:"totalPriceInCents"`
+				} `json:"RideFare"`
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&tripStatus); err == nil {
 				if tripStatus.Driver != nil {
@@ -78,6 +81,10 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 				if tripStatus.Status == "completed" || tripStatus.Status == "cancelled" {
 					log.Printf("Trip %s is %s. Stopping search.", payload.Trip.Id, tripStatus.Status)
 					return nil
+				}
+				if tripStatus.RideFare != nil && tripStatus.RideFare.TotalPriceInCents > payload.Trip.SelectedFare.TotalPriceInCents {
+					log.Printf("Trip %s fare was increased (old: %v, new: %v). Throwing old request to dlq.", payload.Trip.Id, payload.Trip.SelectedFare.TotalPriceInCents, tripStatus.RideFare.TotalPriceInCents)
+					return fmt.Errorf("outdated_fare")
 				}
 			}
 		}

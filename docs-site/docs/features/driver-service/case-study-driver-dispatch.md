@@ -1,3 +1,8 @@
+---
+sidebar_position: 4
+title: Driver Dispatch Case Study
+---
+
 # Case Study: Driver Dispatch & 120s TTL Optimization
 
 **Role:** Principal Platform Engineer & Technical Writer  

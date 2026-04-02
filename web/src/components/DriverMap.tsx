@@ -59,6 +59,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     patchDriverSeats,
     acceptPendingRequest,
     declinePendingRequest,
+    triedDriverIdsMap,
   } = useDriverStreamConnection({
     location: riderLocation,
     geohash: driverGeohash,
@@ -137,6 +138,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
         tripID: requestedTrip.id,
         riderID: requestedTrip.userID,
         driver: driver,
+        triedDriverIds: triedDriverIdsMap[requestedTrip.id] || [],
       }
     })
 
