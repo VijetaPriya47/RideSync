@@ -224,7 +224,7 @@ A background context is created with a strict 10-second timeout. Valid active re
 
 ## 4. Preparing for External API Failures
 
-Microservices rarely live in a vacuum. The Hybrid Logistics Engine heavily relies on external dependencies like OSRM (Open Source Routing Machine) to calculate geographical data.
+Microservices rarely live in a vacuum. The RideSync heavily relies on external dependencies like OSRM (Open Source Routing Machine) to calculate geographical data.
 
 ### The Fallback Pattern
 

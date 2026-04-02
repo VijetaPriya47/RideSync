@@ -3,10 +3,10 @@ sidebar_position: 1
 title: High-Level Design (HLD)
 ---
 
-# High-Level Design (HLD): Hybrid Logistics Engine
+# High-Level Design (HLD): RideSync
 
 ## 1. Executive Summary
-The Hybrid Logistics Engine is a highly scalable, event-driven backend system designed to power a real-time ride-sharing application. It enables riders to request trips, pairs them with available drivers using spatial indexing, and securely processes payments. The system is built using Go microservices, leveraging RabbitMQ for asynchronous messaging, MongoDB for persistent state, and WebSockets for real-time client updates.
+The RideSync is a highly scalable, event-driven backend system designed to power a real-time ride-sharing application. It enables riders to request trips, pairs them with available drivers using spatial indexing, and securely processes payments. The system is built using Go microservices, leveraging RabbitMQ for asynchronous messaging, MongoDB for persistent state, and WebSockets for real-time client updates.
 
 **Target Audience:** Engineering Leadership, Product Managers, and Backend Developers.
 

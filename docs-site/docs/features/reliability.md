@@ -5,7 +5,7 @@ title: Reliability Overview
 
 # Reliability
 
-The Hybrid Logistics Engine uses a multi-layered approach to ensure no events are silently lost and that rider-facing timeouts are handled gracefully.
+The RideSync uses a multi-layered approach to ensure no events are silently lost and that rider-facing timeouts are handled gracefully.
 
 ## 1. Message Retries & Dead Letter Queue (DLQ)
 
@@ -114,7 +114,7 @@ graph TD
 > [!IMPORTANT]
 > The key advantage over Go-level backoff is **crash resilience** — if the Payment Service pod restarts mid-backoff, the message is safely preserved in the broker's `PaymentWaitQueue` rather than lost in-memory. For a production payment system, this is the recommended approach.
 
-See the [Payment Service reliability notes](../payment-service/overview#reliability-note) for context on the current implementation.
+See the [Payment Service reliability notes](./payment-service#reliability-note) for context on the current implementation.
 
 ---
 

@@ -5,7 +5,7 @@ title: RabbitMQ Event & Queue Architecture
 
 # The Asynchronous Journey (RabbitMQ)
 
-The Hybrid Logistics Engine uses an event-driven architecture. Instead of services waiting synchronously for each other to finish (which causes bottlenecks), they emit events to a central RabbitMQ exchange (`TripExchange`) and immediately return to processing the next request.
+The RideSync uses an event-driven architecture. Instead of services waiting synchronously for each other to finish (which causes bottlenecks), they emit events to a central RabbitMQ exchange (`TripExchange`) and immediately return to processing the next request.
 
 Let's walk through the entire lifecycle of a trip, examining exactly how messages bounce between queues behind the scenes.
 

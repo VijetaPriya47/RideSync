@@ -4,7 +4,7 @@ id: "intro"
 title: "Introduction"
 slug: /
 ---
-# Hybrid Logistics Engine
+# RideSync
 
 > **Note:** For setup instructions, technology stack, and implementation details, please see the [Technical Assessment](technical-assessment.md).
 

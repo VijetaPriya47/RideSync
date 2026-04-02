@@ -108,7 +108,7 @@ The Payment Service currently relies on the shared **Go-level exponential backof
 
 For a production financial system, the ideal approach is **broker-level retry** using a dedicated `PaymentRetryExchange` and headless `PaymentWaitQueue`, which preserves messages in RabbitMQ across pod restarts.
 
-See the full design and comparison in [Reliability → Ideal Pattern for Financial Events](../reliability/overview#ideal-pattern-for-financial-events-broker-level-retry).
+See the full design and comparison in [Reliability → Ideal Pattern for Financial Events](./reliability#ideal-pattern-for-financial-events-broker-level-retry).
 
 ---
 
