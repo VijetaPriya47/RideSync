@@ -27,7 +27,7 @@ func isDriverSearchTTLExpired(d amqp.Delivery) bool {
 	}
 	reason, _ := first["reason"].(string)
 	queue, _ := first["queue"].(string)
-	return reason == "expired" && queue == messaging.FindAvailableDriversQueue
+	return (reason == "expired" || reason == "rejected") && queue == messaging.FindAvailableDriversQueue
 }
 
 func startDriverSearchExpiredConsumer(rb *messaging.RabbitMQ) {

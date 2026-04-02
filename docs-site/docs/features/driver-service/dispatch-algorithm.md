@@ -50,13 +50,17 @@ The `handleFindAndNotifyDrivers` function delegates to the core service struct t
 	}
 
 	if len(suitableIDs) == 0 {
-		// Respond backward if no capacity exists
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound...
-		return nil
+		return fmt.Errorf("exhausted_all_drivers")
+	}
+// ...
+	} else {
+		return fmt.Errorf("max_driver_retries_reached")
 	}
 ```
 
-The dispatch sequence was recently upgraded to include `TriedDriverIDs` array tracking. When a driver declines a ride or naturally times out, their `driverId` is added to the event payload. The search algorithm filters these out, preventing the system from matching the same declining driver in an infinite loop. 
+The dispatch sequence relies exclusively on the **Dead Letter Queue (DLQ)** to handle terminal ride states. If the system exhausts all suitable drivers (all decline) or reaches the 120s max retry loop limit, it returns a native Go error. This forces an AMQP `Reject`, automatically shunting the message into the DLQ where the API Gateway consumes it and notifies the rider.
+
+The dispatch sequence also utilizes `TriedDriverIDs` array tracking. When a driver declines a ride or naturally times out, their `driverId` is added to the event payload. The search algorithm filters these out, preventing the system from matching the same declining driver in an infinite loop. 
 
 Additionally, if a rider clicks "Increase Fare", a brand new queue request is broadcast. The HTTP check explicitly cross-references the MongoDB fare; if the active AMQP payload fare is lower than the new increased API base fare, the outdated message throws a native error forcing it to be silently rejected into the Dead Letter Queue (DLQ).
 

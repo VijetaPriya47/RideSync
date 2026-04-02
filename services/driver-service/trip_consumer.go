@@ -113,14 +113,7 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	log.Printf("Found suitable drivers: current=%d, remaining=%d, tried=%d", len(allSuitableIDs), len(suitableIDs), len(payload.TriedDriverIDs))
 
 	if len(suitableIDs) == 0 {
-		// No more untried suitable drivers found. Notify the rider.
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound, contracts.AmqpMessage{
-			OwnerID: payload.Trip.UserID,
-		}); err != nil {
-			log.Printf("Failed to publish message to exchange: %v", err)
-			return err
-		}
-		return nil
+		return fmt.Errorf("exhausted_all_drivers")
 	}
 
 	// Get a random index from the matching drivers
@@ -154,13 +147,8 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 		}
 	} else {
 		log.Printf("Reached maximum driver notifications (12) for trip %s", payload.Trip.Id)
-		// We reached the retry limit. Notify the rider that no drivers were found.
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound, contracts.AmqpMessage{
-			OwnerID: payload.Trip.UserID,
-		}); err != nil {
-			log.Printf("Failed to publish message to exchange: %v", err)
-			return err
-		}
+		// Return an error to force this message into the DLQ due to retries exhaustion
+		return fmt.Errorf("max_driver_retries_reached")
 	}
 
 	return nil
