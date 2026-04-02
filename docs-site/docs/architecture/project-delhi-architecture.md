@@ -1,3 +1,8 @@
+---
+sidebar_position: 9
+title: Project Delhi Rollout
+---
+
 # Technical Design Document: Project Delhi Rollout & Stability Optimization
 **Author:** Vijeta Priya // **Status:** Implemented // **Date:** March 2026
 

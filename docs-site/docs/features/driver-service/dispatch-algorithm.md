@@ -29,22 +29,38 @@ func (c *tripConsumer) Listen() error {
 The `handleFindAndNotifyDrivers` function delegates to the core service struct to filter the currently retained in-memory drivers:
 
 ```go
-	suitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug)
+	// Check HTTP endpoint to ensure trip is still valid and fare is not outdated
+	url := fmt.Sprintf("%s/trips/%s", c.tripSvcURL, payload.Trip.Id)
+	// If tripStatus.RideFare.TotalPriceInCents > payload.Trip.SelectedFare.TotalPriceInCents { 
+	//    return fmt.Errorf("outdated_fare") // Triggers AMQP rejection to DLQ
+    // }
 
-	log.Printf("Found suitable drivers %v", len(suitableIDs))
+	allSuitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug, reqSeats, payload.Trip.Route)
+
+	// Filter out already tried drivers (resolves infinite loop issue matching the same declining driver)
+	var suitableIDs []string
+	triedMap := make(map[string]bool)
+	for _, id := range payload.TriedDriverIDs {
+		triedMap[id] = true
+	}
+	for _, id := range allSuitableIDs {
+		if !triedMap[id] {
+			suitableIDs = append(suitableIDs, id)
+		}
+	}
 
 	if len(suitableIDs) == 0 {
 		// Respond backward if no capacity exists
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound, contracts.AmqpMessage{
-			OwnerID: payload.Trip.UserID,
-		}); err != nil {
-			return err
-		}
+		if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventNoDriversFound...
 		return nil
 	}
 ```
 
-The underlying `FindAvailableDrivers` locks the array and filters strictly by `PackageSlug` (e.g., requested an "suv" -> find "suv" drivers):
+The dispatch sequence was recently upgraded to include `TriedDriverIDs` array tracking. When a driver declines a ride or naturally times out, their `driverId` is added to the event payload. The search algorithm filters these out, preventing the system from matching the same declining driver in an infinite loop. 
+
+Additionally, if a rider clicks "Increase Fare", a brand new queue request is broadcast. The HTTP check explicitly cross-references the MongoDB fare; if the active AMQP payload fare is lower than the new increased API base fare, the outdated message throws a native error forcing it to be silently rejected into the Dead Letter Queue (DLQ).
+
+The underlying `FindAvailableDrivers` locks the array and filters strictly by `PackageSlug` and `RequestedSeats`:
 
 ```go
 func (s *Service) FindAvailableDrivers(packageType string) []string {
