@@ -1,4 +1,4 @@
-# Hybrid Logistics Engine
+# RideSync
 
 > Setup instructions and full implementation details are available in the [Technical Assessment](Technical_Assessment.md).
 
