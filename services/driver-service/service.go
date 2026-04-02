@@ -164,6 +164,18 @@ func (s *Service) NotifyTripCompleted(driverID, tripID string, releasedSeats int
 	return nil
 }
 
+func (s *Service) GetDriverActiveTrips(driverID string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	d := s.findDriverLocked(driverID)
+	if d != nil && len(d.ActiveTripIds) > 0 {
+		out := make([]string, len(d.ActiveTripIds))
+		copy(out, d.ActiveTripIds)
+		return out
+	}
+	return nil
+}
+
 func (s *Service) findDriverLocked(driverID string) *pbd.Driver {
 	for _, dm := range s.drivers {
 		if dm.Driver.Id == driverID {

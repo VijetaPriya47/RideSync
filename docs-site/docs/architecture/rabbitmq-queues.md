@@ -68,3 +68,15 @@ These isolated queues ensure financial transactions, webhook verifications, and 
 11. **`payment_success`**
    - **Consumer:** `Trip Service`
    - **Role:** When Stripe successfully processes a credit card, its webhook hits our API Gateway, which validates the signature. If authentic, the gateway places the payload in this queue. The Trip Service consumes it to change the ride status from "accepted" to "payed".
+
+---
+
+## Reliability & TTL Strategy
+
+When drivers frequently disconnect or go offline improperly, stale data can accumulate in memory. To resolve this, the RabbitMQ setup utilizes **Dead Letter Exchanges (DLX)** and **Message TTLs (Time-To-Live)** across the entire registry.
+
+### Stale Data Prevention
+If an event like `trip.requested` sits in `find_available_drivers` for too long (120s) without being consumed or correctly handled, it is automatically dropped from the main flow and forwarded to the `dead_letter_queue`. This prevents the system from attempting to match riders with drivers using outdated "ghost" requests that are no longer valid.
+
+### Headless Wait Queues
+The use of `search_retry_queue` as a headless wait queue (with a 10s TTL and no consumer) allows the system to implement a "retry loop" natively in the message broker. This keeps the microservices stateless and prevents them from having to manage complex internal timers for search intervals.

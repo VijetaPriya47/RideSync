@@ -40,7 +40,59 @@ The encoded `Geohash` is maintained on the `Driver` object to support scalable `
 
 ## 2. Driver State Management
 
+The Hybrid Logistics Engine has a requirement for very fast real-time tracking of drivers. To handle thousands of location updates per second, we avoid storing highly mutable driver state directly into MongoDB.
+
+### In-Memory Driver State
+
+The **Driver Service** keeps its driver data entirely in-memory. This acts essentially as a cache, drastically dropping latency for proximity lookups.
+
+#### Geohash Mapping Flow
+
+```mermaid
+graph TD
+    subgraph Mobile Devices
+        Phone1["🚗 Driver A (Lat/Lon)"]
+    end
+    
+    subgraph Driver Service Registration
+        HashEncoder["Geohash Encoder Library"]
+        MemoryStore[("In-Memory Slice<br/>s.drivers []*driverInMap")]
+    end
+    
+    subgraph Trip Dispatch
+        TripQ[("FindAvailableDriversQueue")]
+        Matcher["Prefix Matcher"]
+    end
+    
+    Phone1 --> |gRPC Connect| HashEncoder
+    HashEncoder --> |"e.g. 9q8yy"| MemoryStore
+    
+    TripQ --> |New Ride Request| Matcher
+    Matcher --> |Scan for '9q8yy'| MemoryStore
+    
+    style MemoryStore fill:#ff9,stroke:#333
+    style HashEncoder fill:#bbf,stroke:#333
+    style Matcher fill:#bfb,stroke:#333
+```
+
 With multiple parallel WebSockets connecting or disconnecting at random, the Driver Service (maintains an array of pointers to driverInMap) implements thread-safe state management using `sync.RWMutex`.
+
+```go
+type Driver struct {
+    ID              string
+    Name            string
+    ProfilePicture  string
+    CarPlate        string
+    Geohash         string    // For spatial indexing
+    PackageSlug     string    // Vehicle type offered
+    Location        struct {
+        Latitude  float64
+        Longitude float64
+    }
+}
+```
+
+Notice the use of the `Geohash` string. Instead of calculating the Haversine distance for every single driver on every trip request, the location coordinates are encoded into Geohashes. When a trip request comes in from the Trip Service, the Driver Service performs string prefix matching to find active drivers within the same spatial bucket.
 
 ```go
 type Service struct {
@@ -114,6 +166,52 @@ func (s *Service) NotifyTripAccepted(driverID, tripID string, requestedSeats int
 ```
 
 This call is fire-and-forget from the Trip Service side — if the driver has disconnected in the meantime, the gRPC client gracefully logs the error and continues. When the trip completes or is cancelled, seats are released back to restore the driver's full carpool capacity.
+
+### Carpool Matchmaking & Overlap Logic
+
+In a carpooling scenario, the **Expected Workflow** is as follows:
+1. **Trip A Requested**: Broadcast to *n* available drivers.
+2. **Driver A Accepts**: Trip A is locked to Driver A. Other drivers are ignored. If *all* drivers reject/ignore, the request is exhausted after `min(n * 10, 120)` seconds, thrown to the DLQ, and the rider is prompted to "Increase Fare".
+3. **Trip B Requested**: A new rider requests Trip B. The system must filter and find drivers who:
+   - Have `AvailableSeats >= needed_seats`
+   - Have an active trajectory (Trip A) that **overlaps** with Trip B's requested route.
+4. **Targeted Dispatch**: Trip B is broadcast *only* to those overlapping drivers.
+5. **No Matches**: If all overlapping drivers are exhausted, Trip B goes to the DLQ, and the rider must request again with an increased fare.
+
+#### Backend Bounding Box Validation
+The system calculates partial geospatial overlap natively in Go within the `Driver Service` using the `routesOverlap` algorithm. As long as Driver A has `AvailableSeats > 0` and is signed into the `carpool` package, the backend evaluates them for overlapping paths:
+
+1. **Fetch Active Trips**: The `Driver Service` fetches the routing coordinates for all of Driver A's currently active trips via the Trip Service HTTP API.
+2. **Tolerance Calculation (Bounding Box)**: It calculates a geographic "box" around the extreme maximum and minimum latitude/longitude points of Driver A's active route, adding a ±0.005 degree leeway (roughly 0.5 kilometers on all sides).
+3. **Intersection Check**: The algorithm verifies Trip B's requested path. If *any single point* of Trip B falls inside Driver A's bounding box, `routesOverlap` returns `true`. The backend then adds Driver A to the temporary `suitableIDs` pool for Trip B, and dispatches the websocket event.
+4. **Discarding Irrelevant Matches**: If Trip B strictly falls outside the box, `routesOverlap` returns `false`. 
+   - **Crucial Behaviour:** The backend silently drops the driver from the *temporary matchmaking loop for Trip B*, preventing phantom duplicate requests. **The driver is NOT dropped from the global available queue**. If a subsequent Trip C arrives moments later and *does* overlap with Driver A's active route, Driver A will be successfully matched and notified.
+
+```go
+// From services/driver-service/trip_consumer.go
+
+// Bounding box heuristic native to driver-service
+func routesOverlap(activeTripRoute *struct { ... }, newRoute *pb.Route) bool {
+    // 1. Find extreme points of activeTripRoute
+    // 2. Apply ±0.005 tolerance box
+    tolerance := 0.005 
+    minLat -= tolerance
+    maxLat += tolerance
+    minLon -= tolerance
+    maxLon += tolerance
+
+    // 3. Unpack incoming carpool trip and verify intersection
+    for _, g := range newRoute.Geometry {
+        for _, c := range g.Coordinates {
+            if c.Latitude >= minLat && c.Latitude <= maxLat && 
+               c.Longitude >= minLon && c.Longitude <= maxLon {
+                return true // Overlaps! Dispatch Websocket.
+            }
+        }
+    }
+    return false // Discard from temporary match pool.
+}
+```
 
 ---
 

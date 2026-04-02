@@ -84,9 +84,37 @@ title: Driver Dispatch Case Study
 
 ---
 
+**Future Backend Upgrades Required:**
+To tackle overlapping efficiently at scale, the backend must implement **partial path overlapping**. This could involve:
+- Passing the active Tripline (Polyline) to PostGIS or Redis spatial operations.
+- Intersecting Trip A's remaining untouched geometry with Trip B's start/end coordinates.
+- Only dispatching the AMQP `DriverCmdTripRequest` if the backend confidently verifies a partial overlap, keeping irrelevant requests off the driver's WebSocket connection entirely.
+
+
+## Scenario 4: Carpool Overlap Dispatching
+*A second rider requests a carpool while a driver is already on an active carpool trip.*
+
+### Technical Workflow
+1. **Producer:** `Trip Service` publishes `trip.requested` for Trip B (carpool).
+2. **Consumer:** `Driver Service` consumes the request.
+3. **Capacity Check:** Filter out drivers who have `AvailableSeats < requested_seats`.
+4. **Geospatial Check:** For each eligible carpool driver, the service fetches their active trips via the Trip HTTP API. A **bounding box heuristic** (with a ±0.005 degree / ~0.5 km tolerance) is calculated natively in Go over the driver's active route geometry.
+5. **Dispatch:** Only drivers whose active routes successfully overlap with Trip B's requested route receive the AMQP WebSocket `DriverCmdTripRequest`. Non-overlapping requests are silently discarded from the broadcast.
+
+### The "10x" Observer
+- **OTel Spans:** `fetch_active_trips`, `calculate_boundingBox_overlap`.
+- **Prometheus Metric:** `carpool_overlap_filter_droprate` (Counter).
+- **SQL/Log Query:**
+  ```bash
+  # Check logs for driver suitability evaluation
+  kubectl logs driver-service | grep "Found suitable drivers: current="
+  ```
+
+---
+
 ## Infrastructure Impact
 - **HPA Scaling:** `Driver Service` scales based on the `rabbitmq_queue_depth` of `find_available_drivers`. If the queue grows, K8s spins up more pods to handle the load.
 - **Database Load:** Atomic updates ensure we don't need complex distributed locks (Redis Redlock), keeping the MongoDB write-load predictable and lightweight.
 
 > [!IMPORTANT]
-> The Distributed CAS pattern is the backbone of our 99.9% consistency in the dispatch loop.
+> The Distributed CAS pattern is the backbone of our 99.9% consistency in the dispatch loop, while the native Go geospatial clipping preserves driver WebSocket bandwidth during high-concurrency carpool searches.

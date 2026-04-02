@@ -55,6 +55,110 @@ func (c *tripConsumer) Listen() error {
 	})
 }
 
+// Bounding box heuristic adapted from the frontend: prevents dispatching irrelevant carpool trips.
+type tripStatusResponse struct {
+	Status   string      `json:"status"`
+	Driver   interface{} `json:"driver"`
+	RideFare *struct {
+		TotalPriceInCents float64 `json:"totalPriceInCents"`
+		Route             *struct {
+			Routes []struct {
+				Geometry struct {
+					Coordinates [][]float64 `json:"coordinates"` // [lon, lat]
+				} `json:"geometry"`
+			} `json:"routes"`
+		} `json:"route"`
+	} `json:"RideFare"`
+}
+
+func routesOverlap(activeTripRoute *struct {
+	Routes []struct {
+		Geometry struct {
+			Coordinates [][]float64 `json:"coordinates"`
+		} `json:"geometry"`
+	} `json:"routes"`
+}, newRoute *pb.Route) bool {
+	if activeTripRoute == nil || len(activeTripRoute.Routes) == 0 || newRoute == nil {
+		return true // Optimistic match if routing data is missing
+	}
+
+	var minLat, minLon, maxLat, maxLon float64
+	minLat, minLon = 1e9, 1e9
+	maxLat, maxLon = -1e9, -1e9
+
+	pointsCount := 0
+	for _, coord := range activeTripRoute.Routes[0].Geometry.Coordinates {
+		if len(coord) < 2 {
+			continue
+		}
+		lon, lat := coord[0], coord[1]
+		pointsCount++
+		if lat < minLat {
+			minLat = lat
+		}
+		if lat > maxLat {
+			maxLat = lat
+		}
+		if lon < minLon {
+			minLon = lon
+		}
+		if lon > maxLon {
+			maxLon = lon
+		}
+	}
+
+	if pointsCount == 0 {
+		return true
+	}
+
+	tolerance := 0.005 // Approx 0.5km
+	minLat -= tolerance
+	maxLat += tolerance
+	minLon -= tolerance
+	maxLon += tolerance
+
+	for _, g := range newRoute.Geometry {
+		for _, c := range g.Coordinates {
+			if c.Latitude >= minLat && c.Latitude <= maxLat && c.Longitude >= minLon && c.Longitude <= maxLon {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (c *tripConsumer) checkDriverOverlap(driverID string, newRoute *pb.Route) bool {
+	activeTrips := c.service.GetDriverActiveTrips(driverID)
+	if len(activeTrips) == 0 {
+		return true // No active trips, automatically overlapping/available
+	}
+
+	// Fetch trip status from trip-service for active trips to test overlaps
+	for _, tripID := range activeTrips {
+		url := fmt.Sprintf("%s/trips/%s", c.tripSvcURL, tripID)
+		resp, err := http.Get(url)
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				var status tripStatusResponse
+				if err := json.NewDecoder(resp.Body).Decode(&status); err == nil {
+					if status.RideFare != nil && status.RideFare.Route != nil {
+						if routesOverlap(status.RideFare.Route, newRoute) {
+							resp.Body.Close()
+							return true
+						}
+					} else {
+						resp.Body.Close()
+						return true // Can't fetch route, optimistic 
+					}
+				}
+			}
+			resp.Body.Close()
+		}
+	}
+	return false
+}
+
 func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload messaging.TripEventData) error {
 	if payload.Trip == nil || payload.Trip.Id == "" || payload.Trip.SelectedFare == nil {
 		return nil
@@ -66,13 +170,7 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
-			var tripStatus struct {
-				Status string      `json:"status"`
-				Driver interface{} `json:"driver"`
-				RideFare *struct {
-					TotalPriceInCents float64 `json:"totalPriceInCents"`
-				} `json:"RideFare"`
-			}
+			var tripStatus tripStatusResponse
 			if err := json.NewDecoder(resp.Body).Decode(&tripStatus); err == nil {
 				if tripStatus.Driver != nil {
 					log.Printf("Trip %s already has a driver assigned. Stopping search.", payload.Trip.Id)
@@ -98,7 +196,7 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	}
 	allSuitableIDs := c.service.FindAvailableDrivers(payload.Trip.SelectedFare.PackageSlug, reqSeats, payload.Trip.Route)
 
-	// Filter out already tried drivers
+	// Filter out already tried drivers AND check overlapping logic if they have active trips
 	var suitableIDs []string
 	triedMap := make(map[string]bool)
 	for _, id := range payload.TriedDriverIDs {
@@ -106,7 +204,13 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 	}
 	for _, id := range allSuitableIDs {
 		if !triedMap[id] {
-			suitableIDs = append(suitableIDs, id)
+			if payload.Trip.SelectedFare.PackageSlug == "carpool" {
+				if c.checkDriverOverlap(id, payload.Trip.Route) {
+					suitableIDs = append(suitableIDs, id)
+				}
+			} else {
+				suitableIDs = append(suitableIDs, id)
+			}
 		}
 	}
 
