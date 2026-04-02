@@ -9,7 +9,7 @@ A microservices-based backend system simulating a ride-sharing platform. The sys
 Video demo:
 [https://drive.google.com/file/d/1jHZYCv_tlQGjw5cV0MShal-_ezUGujMV/view](https://drive.google.com/file/d/1jHZYCv_tlQGjw5cV0MShal-_ezUGujMV/view)
 
-Documentation - https://vijetapriya47.github.io/Hybrid-Logistics-Engine/
+Documentation - https://vijetapriya47.github.io/RideSync/
 
 ---
 <img width="768" height="601" alt="image" src="https://github.com/user-attachments/assets/6b0c2716-8af0-4bac-bc5a-87ae4a293a23" />
