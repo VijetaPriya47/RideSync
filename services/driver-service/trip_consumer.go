@@ -191,9 +191,13 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 					return fmt.Errorf("outdated_fare")
 				}
 			}
+		} else {
+			log.Printf("WARN: trip status check returned %d. Dropping message (fail-closed).", resp.StatusCode)
+			return nil
 		}
 	} else {
-		log.Printf("WARN: failed to check trip status: %v", err)
+		log.Printf("WARN: failed to check trip status: %v. Dropping message (fail-closed).", err)
+		return nil
 	}
 
 	reqSeats := int32(1)
@@ -215,7 +219,12 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 					suitableIDs = append(suitableIDs, id)
 				}
 			} else {
-				suitableIDs = append(suitableIDs, id)
+				activeTrips := c.service.GetDriverActiveTrips(id)
+				if len(activeTrips) == 0 {
+					suitableIDs = append(suitableIDs, id)
+				} else {
+					log.Printf("Skipping non-carpool driver %s because they are already on an active trip.", id)
+				}
 			}
 		}
 	}

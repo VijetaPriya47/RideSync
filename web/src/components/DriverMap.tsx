@@ -9,9 +9,10 @@ import { DriverTripOverview } from "./DriverTripOverview";
 import * as Geohash from 'ngeohash';
 import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
-import { TripEvents } from "../contracts";
+import { TripEvents, BackendEndpoints } from "../contracts";
 import { useState, useMemo, useRef } from "react";
 import { cn } from "../lib/utils";
+import { API_URL } from "../constants";
 
 const START_LOCATION: Coordinate = {
   latitude: 28.6139,
@@ -99,10 +100,24 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     })
   }
 
-  const handleAcceptTrip = () => {
+  const handleAcceptTrip = async () => {
     if (!requestedTrip || !requestedTrip.id || !driver) {
       alert("No trip ID found or driver is not set")
       return
+    }
+
+    try {
+      const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', requestedTrip.id);
+      const statusResp = await fetch(url);
+      if (statusResp.ok) {
+        const { data } = await statusResp.json();
+        if (data.status === 'accepted' || data.status === 'completed' || data.status === 'cancelled') {
+          alert(`Cannot accept trip. Trip is already ${data.status}.`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to check trip status", e);
     }
 
     sendMessage({

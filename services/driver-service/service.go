@@ -131,7 +131,13 @@ func (s *Service) NotifyTripAccepted(driverID, tripID string, requestedSeats int
 	if d.AvailableSeats < requestedSeats {
 		return fmt.Errorf("not enough seats")
 	}
-	d.AvailableSeats -= requestedSeats
+
+	if d.PackageSlug != carpoolPackageSlug {
+		d.AvailableSeats = 0
+	} else {
+		d.AvailableSeats -= requestedSeats
+	}
+
 	d.ActiveTripIds = append(d.ActiveTripIds, tripID)
 	return nil
 }
@@ -149,9 +155,13 @@ func (s *Service) NotifyTripCompleted(driverID, tripID string, releasedSeats int
 		return fmt.Errorf("driver not found: %s", driverID)
 	}
 
-	d.AvailableSeats += releasedSeats
-	if d.AvailableSeats > d.Capacity {
+	if d.PackageSlug != carpoolPackageSlug {
 		d.AvailableSeats = d.Capacity
+	} else {
+		d.AvailableSeats += releasedSeats
+		if d.AvailableSeats > d.Capacity {
+			d.AvailableSeats = d.Capacity
+		}
 	}
 
 	out := d.ActiveTripIds[:0]

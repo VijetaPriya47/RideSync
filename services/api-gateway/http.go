@@ -263,3 +263,43 @@ func writeJSONError(w http.ResponseWriter, code int, message string) {
 	}
 	writeJSON(w, code, response)
 }
+
+func handleGetTripStatus(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "handleGetTripStatus")
+	defer span.End()
+
+	if r.Method != http.MethodGet {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		writeJSONError(w, http.StatusBadRequest, "invalid url")
+		return
+	}
+	tripID := parts[2]
+
+	tripServiceHttpUrl := env.GetString("TRIP_SERVICE_HTTP_URL", "http://ridesync:8080")
+	resp, err := http.Get(fmt.Sprintf("%s/trips/%s", tripServiceHttpUrl, tripID))
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		writeJSONError(w, resp.StatusCode, "failed to get trip status")
+		return
+	}
+
+	var data interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "failed to decode response")
+		return
+	}
+
+	// We just proxy the data
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: data})
+}
+

@@ -252,6 +252,21 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
     const handleIncreaseFare = async (percentage: number) => {
         if (!trip?.tripID || !selectedCarPackage?.totalPriceInCents) return;
+
+        try {
+            const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', trip.tripID);
+            const statusResp = await fetch(url);
+            if (statusResp.ok) {
+                const { data } = await statusResp.json();
+                if (data.status === 'accepted' || data.status === 'completed' || data.status === 'cancelled') {
+                    alert(`Cannot increase fare. Trip is already ${data.status}.`);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to check trip status", e);
+        }
+
         const newPrice = selectedCarPackage.totalPriceInCents * (1 + percentage / 100);
         const payload = { tripID: trip.tripID, userID: userID, totalPriceInCents: newPrice };
         const response = await fetch(`${API_URL}${BackendEndpoints.INCREASE_TRIP_FARE}`, {

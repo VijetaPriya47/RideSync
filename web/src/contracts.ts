@@ -4,6 +4,7 @@ import { Coordinate, Driver, Route, RouteFare, Trip } from "./types";
 export enum BackendEndpoints {
   PREVIEW_TRIP = "/trip/preview",
   START_TRIP = "/trip/start",
+  GET_TRIP = "/trip/{id}",
   INCREASE_TRIP_FARE = "/trip/increase-fare",
   UPDATE_TRIP_SEATS = "/trip/update-seats",
   WS_DRIVERS = "/drivers",
