@@ -5,7 +5,7 @@ title: Future Roadmap / Capstone
 
 # Future Roadmap & Capstone Ideas
 
-The Hybrid Logistics Engine is currently a highly functional, event-driven microservices architecture. However, there are numerous opportunities to expand its feature set and solve more complex technical challenges.
+The RideSync is currently a highly functional, event-driven microservices architecture. However, there are numerous opportunities to expand its feature set and solve more complex technical challenges.
 
 The following represent **Capstone Ideas** that developers can implement to stretch their knowledge of Go, Kubernetes, and System Design.
 

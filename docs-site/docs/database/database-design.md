@@ -652,7 +652,7 @@ client, err := mongo.Connect(ctx, options.Client().
 - [Local Deployment Guide](../deployment/local-deployment.md)
 - [GCP Deployment Guide](../deployment/gcp-deployment.md)
 - [Architecture Overview](../architecture/hld.md)
-- [API Documentation](../features/api-gateway/overview.md)
+- [API Documentation](../features/api-gateway)
 
 ---
 

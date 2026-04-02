@@ -40,7 +40,7 @@ The encoded `Geohash` is maintained on the `Driver` object to support scalable `
 
 ## 2. Driver State Management
 
-The Hybrid Logistics Engine has a requirement for very fast real-time tracking of drivers. To handle thousands of location updates per second, we avoid storing highly mutable driver state directly into MongoDB.
+The RideSync has a requirement for very fast real-time tracking of drivers. To handle thousands of location updates per second, we avoid storing highly mutable driver state directly into MongoDB.
 
 ### In-Memory Driver State
 

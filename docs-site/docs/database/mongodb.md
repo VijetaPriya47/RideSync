@@ -5,7 +5,7 @@ title: Database Design (MongoDB)
 
 # Database Design (MongoDB)
 
-The Hybrid Logistics Engine leverages a microservices architecture where the **Trip Service** actively owns the MongoDB database. We use a schema-on-read NoSQL approach, optimized for the high read volume inherent in trip tracking.
+The RideSync leverages a microservices architecture where the **Trip Service** actively owns the MongoDB database. We use a schema-on-read NoSQL approach, optimized for the high read volume inherent in trip tracking.
 
 ## Collections Overview
 

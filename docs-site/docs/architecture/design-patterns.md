@@ -5,7 +5,7 @@ title: Design Patterns & LLD
 
 # Design & Implementation Patterns
 
-Because the Hybrid Logistics Engine is built to scale in both traffic and engineering contributors, we adhere to Core **SOLID** principles, the **Repository Pattern**, and strictly idiomatic Go concurrency models.
+Because the RideSync is built to scale in both traffic and engineering contributors, we adhere to Core **SOLID** principles, the **Repository Pattern**, and strictly idiomatic Go concurrency models.
 
 ## 1. Clean Architecture & Repository Pattern
 
