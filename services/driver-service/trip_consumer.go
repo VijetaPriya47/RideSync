@@ -122,15 +122,23 @@ func routesOverlap(activeTripRoute *struct {
 	minLon -= tolerance
 	maxLon += tolerance
 
+	return len(newRoute.Geometry) > 0 && len(newRoute.Geometry[0].Coordinates) > 0 &&
+		allRoutePointsWithinBounds(newRoute, minLat, maxLat, minLon, maxLon)
+}
+
+func allRoutePointsWithinBounds(newRoute *pb.Route, minLat, maxLat, minLon, maxLon float64) bool {
 	for _, g := range newRoute.Geometry {
+		if len(g.Coordinates) == 0 {
+			continue
+		}
 		for _, c := range g.Coordinates {
-			if c.Latitude >= minLat && c.Latitude <= maxLat && c.Longitude >= minLon && c.Longitude <= maxLon {
-				return true
+			if c.Latitude < minLat || c.Latitude > maxLat || c.Longitude < minLon || c.Longitude > maxLon {
+				return false
 			}
 		}
 	}
 
-	return false
+	return true
 }
 
 func (c *tripConsumer) checkDriverOverlap(driverID string, newRoute *pb.Route) bool {

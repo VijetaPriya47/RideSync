@@ -5,8 +5,8 @@ import { Button } from "./ui/button"
 import { TripEvents } from "../contracts"
 import { haversineDistanceKm } from "../utils/math"
 
-// Bounding box overlap heuristic: check if any point in the new request's route
-// falls within the accepted trip's route bounding box (± 0.005 deg ≈ 0.5 km)
+// Bounding box overlap heuristic: require the full new request route to stay
+// within the accepted trip's route bounding box (± 0.005 deg ≈ 0.5 km)
 function routesOverlap(acceptedRoute?: Route, newRoute?: Route): boolean {
   if (!acceptedRoute || !newRoute) return true; // optimistic if data missing
   const allCoords = acceptedRoute.geometry.flatMap((g) => g.coordinates);
@@ -19,11 +19,13 @@ function routesOverlap(acceptedRoute?: Route, newRoute?: Route): boolean {
   const minLon = Math.min(...lons) - TOLERANCE;
   const maxLon = Math.max(...lons) + TOLERANCE;
 
-  return newRoute.geometry.some((g) =>
-    g.coordinates.some(
-      (c) => c.latitude >= minLat && c.latitude <= maxLat && c.longitude >= minLon && c.longitude <= maxLon
-    )
-  );
+  return newRoute.geometry.length > 0 &&
+    newRoute.geometry.some((g) => g.coordinates.length > 0) &&
+    newRoute.geometry.every((g) =>
+      g.coordinates.every(
+        (c) => c.latitude >= minLat && c.latitude <= maxLat && c.longitude >= minLon && c.longitude <= maxLon
+      )
+    );
 }
 
 interface DriverTripOverviewProps {

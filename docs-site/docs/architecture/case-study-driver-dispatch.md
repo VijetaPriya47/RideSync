@@ -98,7 +98,7 @@ To tackle overlapping efficiently at scale, the backend must implement **partial
 1. **Producer:** `Trip Service` publishes `trip.requested` for Trip B (carpool).
 2. **Consumer:** `Driver Service` consumes the request.
 3. **Capacity Check:** Filter out drivers who have `AvailableSeats < requested_seats`.
-4. **Geospatial Check:** For each eligible carpool driver, the service fetches their active trips via the Trip HTTP API. A **bounding box heuristic** (with a ±0.005 degree / ~0.5 km tolerance) is calculated natively in Go over the driver's active route geometry.
+4. **Geospatial Check:** For each eligible carpool driver, the service fetches their active trips via the Trip HTTP API. A **bounding box heuristic** (with a ±0.005 degree / ~0.5 km tolerance) is calculated natively in Go over the driver's active route geometry, and the incoming carpool route only qualifies when its sampled points all remain inside that expanded box.
 5. **Dispatch:** Only drivers whose active routes successfully overlap with Trip B's requested route receive the AMQP WebSocket `DriverCmdTripRequest`. Non-overlapping requests are silently discarded from the broadcast.
 
 ### The "10x" Observer
