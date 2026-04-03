@@ -2,9 +2,7 @@ import React from "react"
 import { Trip, Route } from "../types"
 import { TripOverviewCard } from "./TripOverviewCard"
 import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { TripEvents, BackendEndpoints } from "../contracts"
-import { API_URL } from "../constants"
+import { TripEvents } from "../contracts"
 import { haversineDistanceKm } from "../utils/math"
 
 // Bounding box overlap heuristic: check if any point in the new request's route
@@ -25,82 +23,6 @@ function routesOverlap(acceptedRoute?: Route, newRoute?: Route): boolean {
     g.coordinates.some(
       (c) => c.latitude >= minLat && c.latitude <= maxLat && c.longitude >= minLon && c.longitude <= maxLon
     )
-  );
-}
-
-function OTPVerifyPanel({ tripID, driverID }: { tripID: string; driverID: string }) {
-  const [otp, setOtp] = React.useState("");
-  const [status, setStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = React.useState("");
-
-  const handleVerify = async () => {
-    if (!otp || otp.length !== 4) {
-      setErrorMsg("Please enter a 4-digit OTP");
-      setStatus("error");
-      return;
-    }
-    setStatus("loading");
-    setErrorMsg("");
-    try {
-      const url = `${API_URL}${BackendEndpoints.VERIFY_TRIP_OTP}`.replace(
-        // the endpoint is /trip/verify-otp, we proxy via api-gateway
-        "", ""
-      );
-      const resp = await fetch(`${API_URL}/trip/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripID, driverID, otp }),
-      });
-      const json = await resp.json();
-      if (resp.ok && json?.data?.success) {
-        setStatus("success");
-      } else {
-        setErrorMsg(json?.data?.message || json?.error?.message || "Invalid OTP");
-        setStatus("error");
-      }
-    } catch {
-      setErrorMsg("Network error");
-      setStatus("error");
-    }
-  };
-
-  if (status === "success") {
-    return (
-      <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 text-center">
-        <p className="text-lg font-bold text-green-700">✅ OTP Verified!</p>
-        <p className="text-xs text-green-600 mt-1">The payment screen will appear for the rider shortly.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 flex flex-col gap-3">
-      <p className="text-sm font-semibold text-amber-800 text-center">Enter OTP from rider to confirm pickup</p>
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          maxLength={4}
-          placeholder="0000"
-          value={otp}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setOtp(e.target.value.replace(/\D/g, "").slice(0, 4));
-            setStatus("idle");
-            setErrorMsg("");
-          }}
-          className="text-center text-xl font-mono tracking-widest border-amber-300 focus:border-amber-500"
-        />
-        <Button
-          onClick={handleVerify}
-          disabled={status === "loading"}
-          className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4"
-        >
-          {status === "loading" ? "..." : "Verify"}
-        </Button>
-      </div>
-      {status === "error" && (
-        <p className="text-xs text-red-600 text-center font-medium">{errorMsg}</p>
-      )}
-    </div>
   );
 }
 
@@ -238,7 +160,7 @@ export const DriverTripOverview = ({
       <div className="flex flex-col gap-3">
         <TripOverviewCard
           title="All set!"
-          description="Ask the rider for their OTP to confirm pickup"
+          description="You can now start the trip"
         >
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
@@ -260,9 +182,6 @@ export const DriverTripOverview = ({
                 🟢 {availableSeats} seat{availableSeats !== 1 ? 's' : ''} available for carpool
               </div>
             )}
-
-            {/* OTP Verification Panel */}
-            <OTPVerifyPanel tripID={displayTrip.id} driverID={displayTrip.driver?.id ?? ''} />
           </div>
         </TripOverviewCard>
 

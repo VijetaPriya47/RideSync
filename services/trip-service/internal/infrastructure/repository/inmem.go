@@ -94,12 +94,3 @@ func (r *inmemRepository) UpdateRideFareSeats(ctx context.Context, fareID string
 	f.RequestedSeats = seats
 	return nil
 }
-
-func (r *inmemRepository) SetTripOTP(ctx context.Context, tripID, otp string) error {
-	trip, ok := r.trips[tripID]
-	if !ok {
-		return fmt.Errorf("trip not found: %s", tripID)
-	}
-	trip.OTP = otp
-	return nil
-}

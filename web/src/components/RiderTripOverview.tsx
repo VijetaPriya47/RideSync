@@ -118,7 +118,6 @@ export const RiderTripOverview = ({
   */
 
   if (status === TripEvents.DriverAssigned) {
-    const otp: string | null = (trip as any)?.otp ?? null;
     return (
       <TripOverviewCard
         title="Driver assigned!"
@@ -140,20 +139,10 @@ export const RiderTripOverview = ({
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-sm text-blue-700 text-center font-medium">
             📍 Driver is heading to your pickup location
           </div>
-
-          {otp && (
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 text-center">
-              <p className="text-xs text-amber-600 font-medium uppercase tracking-wide mb-1">Your ride OTP</p>
-              <p className="text-3xl font-extrabold text-amber-700 tracking-widest">{otp}</p>
-              <p className="text-xs text-amber-500 mt-1">Share this with your driver to confirm pickup</p>
-            </div>
-          )}
         </div>
-        <div className="flex flex-col gap-2 mt-4">
-          <Button variant="destructive" className="w-full" onClick={onCancel}>
-            Cancel current trip
-          </Button>
-        </div>
+        <Button variant="destructive" className="w-full mt-4" onClick={onCancel}>
+          Cancel current trip
+        </Button>
       </TripOverviewCard>
     )
   }

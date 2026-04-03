@@ -186,16 +186,6 @@ func (s *Service) GetDriverActiveTrips(driverID string) []string {
 	return nil
 }
 
-func (s *Service) GetDriverPackageSlug(driverID string) string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	d := s.findDriverLocked(driverID)
-	if d != nil {
-		return d.PackageSlug
-	}
-	return ""
-}
-
 func (s *Service) findDriverLocked(driverID string) *pbd.Driver {
 	for _, dm := range s.drivers {
 		if dm.Driver.Id == driverID {

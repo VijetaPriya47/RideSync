@@ -266,23 +266,3 @@ func (s *service) IncreaseTripFare(ctx context.Context, tripID, userID string, t
 
 	return s.repo.GetTripByID(ctx, tripID)
 }
-
-func (s *service) VerifyTripOTP(ctx context.Context, tripID, driverID, otp string) (bool, error) {
-	trip, err := s.repo.GetTripByID(ctx, tripID)
-	if err != nil {
-		return false, fmt.Errorf("get trip: %w", err)
-	}
-	if trip == nil {
-		return false, fmt.Errorf("trip not found")
-	}
-	if trip.Driver == nil || trip.Driver.ID != driverID {
-		return false, fmt.Errorf("driver mismatch")
-	}
-	if trip.OTP == "" {
-		return false, fmt.Errorf("no OTP set for trip")
-	}
-	if trip.OTP != otp {
-		return false, nil
-	}
-	return true, nil
-}
