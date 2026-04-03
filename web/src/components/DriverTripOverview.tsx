@@ -3,7 +3,7 @@ import { Trip, Route } from "../types"
 import { TripOverviewCard } from "./TripOverviewCard"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { TripEvents } from "../contracts"
+import { TripEvents, BackendEndpoints } from "../contracts"
 import { API_URL } from "../constants"
 import { haversineDistanceKm } from "../utils/math"
 
@@ -42,6 +42,10 @@ function OTPVerifyPanel({ tripID, driverID }: { tripID: string; driverID: string
     setStatus("loading");
     setErrorMsg("");
     try {
+      const url = `${API_URL}${BackendEndpoints.VERIFY_TRIP_OTP}`.replace(
+        // the endpoint is /trip/verify-otp, we proxy via api-gateway
+        "", ""
+      );
       const resp = await fetch(`${API_URL}/trip/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
