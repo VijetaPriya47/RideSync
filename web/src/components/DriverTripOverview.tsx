@@ -34,6 +34,11 @@ interface DriverTripOverviewProps {
   pendingCarpoolRequests?: Trip[];
   availableSeats?: number;
   activeTrip?: Trip | null;
+  completedTrip?: {
+    tripId: string;
+    riderId: string;
+    amount: string;
+  } | null;
   onAcceptPending?: (trip: Trip) => void;
   onDeclinePending?: (trip: Trip) => void;
   /** Driver's current GPS location */
@@ -50,6 +55,7 @@ export const DriverTripOverview = ({
   pendingCarpoolRequests = [],
   availableSeats,
   activeTrip,
+  completedTrip,
   onAcceptPending,
   onDeclinePending,
   driverLocation,
@@ -61,7 +67,7 @@ export const DriverTripOverview = ({
     if (status === TripEvents.DriverTripRequest && trip) {
       setTimeLeft(120);
     }
-  }, [status, trip?.id]);
+  }, [status, trip]);
 
   React.useEffect(() => {
     if (status === TripEvents.DriverTripRequest && timeLeft > 0) {
@@ -70,7 +76,27 @@ export const DriverTripOverview = ({
     } else if (timeLeft === 0 && status === TripEvents.DriverTripRequest) {
       onDeclineTrip?.();
     }
-  }, [timeLeft, status]);
+  }, [timeLeft, status, onDeclineTrip]);
+
+  if (status === TripEvents.Completed && completedTrip) {
+    return (
+      <TripOverviewCard
+        title="Trip completed"
+        description="You completed the trip successfully and the fare has been added to your balance."
+      >
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-5 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Balance earned</p>
+            <p className="mt-2 text-3xl font-black text-emerald-700">₹{completedTrip.amount}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
+            <p>Trip ID: {completedTrip.tripId}</p>
+            <p>Rider ID: {completedTrip.riderId}</p>
+          </div>
+        </div>
+      </TripOverviewCard>
+    )
+  }
 
   // If we have an active trip, show the dashboard (All set!)
   // If we don't have an active trip but have a request, show the request overlay

@@ -88,7 +88,7 @@ func (s *Service) RegisterDriver(driverID, packageSlug string, capacity int32) (
 		Id:             driverID,
 		Geohash:        geohashStr,
 		Location:       &pbd.Location{Latitude: randomRoute[0][0], Longitude: randomRoute[0][1]},
-		Name:           "Lando Norris",
+		Name:           "Anya",
 		PackageSlug:    packageSlug,
 		ProfilePicture: randomAvatar,
 		CarPlate:       randomPlate,

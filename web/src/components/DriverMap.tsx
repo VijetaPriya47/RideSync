@@ -13,6 +13,7 @@ import { TripEvents, BackendEndpoints } from "../contracts";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { API_URL } from "../constants";
+import { LocateFixed } from "lucide-react";
 
 const START_LOCATION: Coordinate = {
   latitude: 28.6139,
@@ -41,6 +42,11 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
   const mapRef = useRef<L.Map>(null)
   const userID = useMemo(() => crypto.randomUUID(), [])
   const [riderLocation, setRiderLocation] = useState<Coordinate>(START_LOCATION)
+  const [completedTrip, setCompletedTrip] = useState<{
+    tripId: string;
+    riderId: string;
+    amount: string;
+  } | null>(null)
 
   const driverGeohash = useMemo(() =>
     Geohash.encode(riderLocation?.latitude, riderLocation?.longitude, 7)
@@ -57,7 +63,8 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     sendMessage,
     setTripStatus,
     resetTripStatus,
-    patchDriverSeats,
+    reserveSeatsForAcceptedTrip,
+    restoreSeatsAfterTrip,
     acceptPendingRequest,
     declinePendingRequest,
     triedDriverIdsMap,
@@ -129,13 +136,10 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
       }
     })
 
-    // Optimistically decrement the driver's available seats
-    if (requestedTrip.selectedFare?.packageSlug === CarPackageSlug.CARPOOL) {
-      const seatsNeeded = requestedTrip.selectedFare?.requestedSeats ?? 1;
-      patchDriverSeats(seatsNeeded);
-    }
+    reserveSeatsForAcceptedTrip(requestedTrip);
 
     setActiveTrip(requestedTrip);
+    setCompletedTrip(null);
     // Explicitly clear requested trip after setting active trip
     // so we don't have multiple trips in the overlay
     setTripStatus(TripEvents.DriverTripAccept);
@@ -211,6 +215,53 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     };
   }, [activeTrip, activeTripIds, setActiveTrip, setTripStatus]);
 
+  useEffect(() => {
+    if (!activeTrip?.id) return;
+
+    let cancelled = false;
+
+    const syncActiveTripStatus = async () => {
+      try {
+        const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', activeTrip.id);
+        const response = await fetch(url);
+        if (!response.ok) return;
+
+        const { data } = await response.json();
+        if (cancelled || !data?.status) return;
+
+        if (data.status === 'payed' || data.status === 'completed') {
+          const seatsMultiplier = activeTrip.selectedFare?.requestedSeats ?? 1;
+          const totalAmount = (((activeTrip.selectedFare?.totalPriceInCents ?? 0) * seatsMultiplier) / 100).toFixed(2);
+          restoreSeatsAfterTrip(activeTrip);
+          setCompletedTrip({
+            tripId: activeTrip.id,
+            riderId: activeTrip.userID,
+            amount: totalAmount,
+          });
+          setActiveTrip(null);
+          setTripStatus(TripEvents.Completed);
+          return;
+        }
+
+        if (data.status === 'cancelled') {
+          restoreSeatsAfterTrip(activeTrip);
+          setActiveTrip(null);
+          setTripStatus(TripEvents.Cancelled);
+        }
+      } catch (error) {
+        console.error("Failed to sync active trip status", error);
+      }
+    };
+
+    const intervalId = window.setInterval(syncActiveTripStatus, 4000);
+    syncActiveTripStatus();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeTrip, restoreSeatsAfterTrip, setActiveTrip, setTripStatus]);
+
 
   if (error) {
     return <div>Error: {error}</div>
@@ -275,21 +326,32 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
           <button
             onClick={() => setIsGPSTracking(!isGPSTracking)}
             className={cn(
-              "flex items-center gap-3 px-6 py-3 rounded-full font-bold shadow-2xl transition-all duration-500 scale-100 active:scale-95 border-2",
+              "flex items-center gap-3 rounded-full border bg-white/95 px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-lg backdrop-blur-sm transition-all duration-300 active:scale-95",
               isGPSTracking
-                ? "bg-green-600 text-white border-green-400 animate-pulse ring-4 ring-green-500/30"
-                : "bg-white text-gray-700 border-gray-200 hover:border-blue-400"
+                ? "border-blue-200 ring-1 ring-blue-100"
+                : "border-gray-200 hover:border-blue-300 hover:shadow-xl"
             )}
           >
-            <div className={cn(
-              "w-3 h-3 rounded-full",
-              isGPSTracking ? "bg-white animate-ping" : "bg-gray-300"
-            )} />
-            {isGPSTracking ? "GPS: LIVE TRACKING" : "GPS: START TRACKING"}
+            <span
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full border",
+                isGPSTracking
+                  ? "border-blue-200 bg-blue-50 text-blue-600"
+                  : "border-gray-200 bg-gray-50 text-gray-500"
+              )}
+            >
+              <LocateFixed className={cn("h-4 w-4", isGPSTracking && "animate-pulse")} />
+            </span>
+            <span className="flex flex-col items-start leading-tight">
+              <span>{isGPSTracking ? "GPS Tracking" : "Location Paused"}</span>
+              <span className="text-xs font-medium text-gray-500">
+                {isGPSTracking ? "Live location on" : "Tap to resume live GPS"}
+              </span>
+            </span>
           </button>
           {!isGPSTracking && (
-            <p className="text-[10px] bg-black/60 text-white px-3 py-1 rounded-full font-black tracking-widest backdrop-blur-sm">
-              OR CLICK MAP TO SET MANUAL LOCATION
+            <p className="rounded-full bg-white/95 px-3 py-1 text-[10px] font-semibold tracking-wide text-gray-600 shadow-md backdrop-blur-sm">
+              Click the map to place your driver manually
             </p>
           )}
         </div>
@@ -308,6 +370,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
             pendingCarpoolRequests={pendingCarpoolRequests}
             availableSeats={driver?.availableSeats}
             activeTrip={activeTrip}
+            completedTrip={completedTrip}
             onAcceptPending={acceptPendingRequest}
             onDeclinePending={declinePendingRequest}
             driverLocation={riderLocation}

@@ -43,7 +43,7 @@ export const useDriverStreamConnection = ({
         }
       }));
     }
-  }, [location, geohash, ws?.readyState]);
+  }, [location, geohash, ws]);
 
   useEffect(() => {
     if (!userID) return;
@@ -163,5 +163,41 @@ export const useDriverStreamConnection = ({
     });
   };
 
-  return { error, tripStatus, driver, requestedTrip, activeTrip, pendingCarpoolRequests, resetTripStatus, sendMessage, setTripStatus, setActiveTrip, patchDriverSeats, acceptPendingRequest, declinePendingRequest, triedDriverIdsMap };
+  const reserveSeatsForAcceptedTrip = (trip: Trip) => {
+    setDriver((prev: Driver | null) => {
+      if (!prev || prev.availableSeats === undefined) return prev;
+      const nextTripIds = [...(prev.activeTripIds ?? [])];
+      if (!nextTripIds.includes(trip.id)) {
+        nextTripIds.push(trip.id);
+      }
+      if (trip.selectedFare?.packageSlug === CarPackageSlug.CARPOOL) {
+        const seatsNeeded = trip.selectedFare?.requestedSeats ?? 1;
+        return { ...prev, availableSeats: Math.max(0, prev.availableSeats - seatsNeeded), activeTripIds: nextTripIds };
+      }
+      return { ...prev, availableSeats: 0, activeTripIds: nextTripIds };
+    });
+  };
+
+  const restoreSeatsAfterTrip = (trip: Trip) => {
+    setDriver((prev: Driver | null) => {
+      if (!prev) return prev;
+      const remainingTripIds = (prev.activeTripIds ?? []).filter((id) => id !== trip.id);
+      if (trip.selectedFare?.packageSlug === CarPackageSlug.CARPOOL) {
+        const seatsReleased = trip.selectedFare?.requestedSeats ?? 1;
+        const nextSeats = (prev.availableSeats ?? 0) + seatsReleased;
+        return {
+          ...prev,
+          availableSeats: prev.capacity !== undefined ? Math.min(prev.capacity, nextSeats) : nextSeats,
+          activeTripIds: remainingTripIds,
+        };
+      }
+      return {
+        ...prev,
+        availableSeats: prev.capacity ?? prev.availableSeats,
+        activeTripIds: remainingTripIds,
+      };
+    });
+  };
+
+  return { error, tripStatus, driver, requestedTrip, activeTrip, pendingCarpoolRequests, resetTripStatus, sendMessage, setTripStatus, setActiveTrip, patchDriverSeats, reserveSeatsForAcceptedTrip, restoreSeatsAfterTrip, acceptPendingRequest, declinePendingRequest, triedDriverIdsMap };
 }

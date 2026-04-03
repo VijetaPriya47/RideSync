@@ -101,7 +101,6 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             () => setGpsAvailable(false),
             { enableHighAccuracy: true, timeout: 8000 }
         );
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Live GPS tracking when enabled

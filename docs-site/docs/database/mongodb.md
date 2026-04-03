@@ -41,7 +41,7 @@ Stores complete trip and ride information, including the user, driver details, a
   },
   "driver": {
     "id": "driver_456",
-    "name": "Lando Norris",
+    "name": "Anya",
     "profilePicture": "https://randomuser.me/api/portraits/lego/1.jpg",
     "carPlate": "ABC-1234"
   }
@@ -97,4 +97,3 @@ client, err := mongo.Connect(ctx, options.Client().
 ## MongoDB Documentation
 
 - [MongoDB TTL Indexes for Auto-Expiration](https://www.mongodb.com/docs/manual/core/index-ttl/)
-

@@ -177,7 +177,7 @@ The database contains **2 main collections**:
   },
   "driver": {
     "id": "driver_456",
-    "name": "Lando Norris",
+    "name": "Anya",
     "profilePicture": "https://randomuser.me/api/portraits/lego/1.jpg",
     "carPlate": "ABC-1234"
   }
@@ -698,4 +698,3 @@ db.ride_fares.aggregate([
 **Last Updated**: January 14, 2026  
 **Version**: 1.0  
 **Maintained by**: Ride-Sharing Platform Team
-
