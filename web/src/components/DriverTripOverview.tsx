@@ -31,7 +31,6 @@ interface DriverTripOverviewProps {
   status?: TripEvents | null;
   onAcceptTrip?: () => void;
   onDeclineTrip?: () => void;
-  // Carpool queue
   pendingCarpoolRequests?: Trip[];
   availableSeats?: number;
   activeTrip?: Trip | null;
@@ -84,7 +83,7 @@ export const DriverTripOverview = ({
     )
   }
 
-  if (status === TripEvents.DriverTripRequest && trip) {
+  if (status === TripEvents.DriverTripRequest && trip && !activeTrip) {
     const seatsRequested = trip.selectedFare?.requestedSeats || 1;
     const rawFare = trip.selectedFare?.totalPriceInCents || 0;
     const formattedFare = ((rawFare * seatsRequested) / 100).toFixed(2);
@@ -149,10 +148,8 @@ export const DriverTripOverview = ({
   if (status === TripEvents.DriverTripAccept || activeTrip) {
     const displayTrip = activeTrip || trip;
     if (!displayTrip) return null;
-
-    // Only show pending requests that have overlapping routes
     const overlappingRequests = pendingCarpoolRequests.filter((req) =>
-      routesOverlap(activeTrip?.route, req.route)
+      routesOverlap(displayTrip.route, req.route)
     );
     const hasSeats = availableSeats !== undefined && availableSeats > 0;
 
@@ -185,7 +182,6 @@ export const DriverTripOverview = ({
           </div>
         </TripOverviewCard>
 
-        {/* Secondary carpool request queue */}
         {hasSeats && overlappingRequests.length > 0 && (
           <div className="bg-white rounded-2xl shadow-md border border-blue-100 p-4">
             <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">

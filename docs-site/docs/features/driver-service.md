@@ -184,34 +184,10 @@ The system calculates partial geospatial overlap natively in Go within the `Driv
 1. **Fetch Active Trips**: The `Driver Service` fetches the routing coordinates for all of Driver A's currently active trips via the Trip Service HTTP API.
 2. **Tolerance Calculation (Bounding Box)**: It calculates a geographic "box" around the extreme maximum and minimum latitude/longitude points of Driver A's active route, adding a ±0.005 degree leeway (roughly 0.5 kilometers on all sides).
 3. **Intersection Check**: The algorithm verifies Trip B's requested path. If *any single point* of Trip B falls inside Driver A's bounding box, `routesOverlap` returns `true`. The backend then adds Driver A to the temporary `suitableIDs` pool for Trip B, and dispatches the websocket event.
-4. **Discarding Irrelevant Matches**: If Trip B strictly falls outside the box, `routesOverlap` returns `false`. 
+4. **Discarding Irrelevant Matches**: If Trip B strictly falls outside the box, `routesOverlap` returns `false`.
    - **Crucial Behaviour:** The backend silently drops the driver from the *temporary matchmaking loop for Trip B*, preventing phantom duplicate requests. **The driver is NOT dropped from the global available queue**. If a subsequent Trip C arrives moments later and *does* overlap with Driver A's active route, Driver A will be successfully matched and notified.
 
-```go
-// From services/driver-service/trip_consumer.go
-
-// Bounding box heuristic native to driver-service
-func routesOverlap(activeTripRoute *struct { ... }, newRoute *pb.Route) bool {
-    // 1. Find extreme points of activeTripRoute
-    // 2. Apply ±0.005 tolerance box
-    tolerance := 0.005 
-    minLat -= tolerance
-    maxLat += tolerance
-    minLon -= tolerance
-    maxLon += tolerance
-
-    // 3. Unpack incoming carpool trip and verify intersection
-    for _, g := range newRoute.Geometry {
-        for _, c := range g.Coordinates {
-            if c.Latitude >= minLat && c.Latitude <= maxLat && 
-               c.Longitude >= minLon && c.Longitude <= maxLon {
-                return true // Overlaps! Dispatch Websocket.
-            }
-        }
-    }
-    return false // Discard from temporary match pool.
-}
-```
+On the frontend, the driver dashboard now rehydrates the first active trip from `activeTripIds` after reconnects or refreshes, so follow-up carpool requests stay underneath the active-trip card instead of replacing it with a standalone request view.
 
 ---
 

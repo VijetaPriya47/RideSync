@@ -154,8 +154,7 @@ func (c *tripConsumer) checkDriverOverlap(driverID string, newRoute *pb.Route) b
 						}
 					} else {
 						resp.Body.Close()
-						// log.Printf("checkDriverOverlap: missing route data for trip %s", tripID)
-						continue 
+						continue
 					}
 				}
 			}

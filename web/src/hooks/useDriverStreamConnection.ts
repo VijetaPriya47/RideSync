@@ -30,6 +30,8 @@ export const useDriverStreamConnection = ({
   // Ref to always read the latest activeTrip status inside the WS callback
   const activeTripRef = React.useRef<Trip | null>(null);
   React.useEffect(() => { activeTripRef.current = activeTrip; }, [activeTrip]);
+  const driverRef = React.useRef<Driver | null>(null);
+  React.useEffect(() => { driverRef.current = driver; }, [driver]);
 
   useEffect(() => {
     if (ws?.readyState === WebSocket.OPEN && location && geohash) {
@@ -78,9 +80,10 @@ export const useDriverStreamConnection = ({
           if (payload.triedDriverIds) {
             setTriedDriverIdsMap((prev: Record<string, string[]>) => ({ ...prev, [trip.id]: payload.triedDriverIds }));
           }
-          // If driver already has an active accepted trip, queue this as a pending carpool request
-          if (activeTripRef.current) {
-            setPendingCarpoolRequests((prev: Trip[]) => [...prev, trip]);
+          if (activeTripRef.current || (driverRef.current?.activeTripIds?.length ?? 0) > 0) {
+            setPendingCarpoolRequests((prev: Trip[]) =>
+              prev.some((existing) => existing.id === trip.id) ? prev : [...prev, trip]
+            );
           } else {
             setRequestedTrip(trip);
           }

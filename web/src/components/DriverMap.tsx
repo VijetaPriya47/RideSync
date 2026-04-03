@@ -10,7 +10,7 @@ import * as Geohash from 'ngeohash';
 import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
 import { TripEvents, BackendEndpoints } from "../contracts";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { API_URL } from "../constants";
 
@@ -182,6 +182,34 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
   // Get active trip details for carpool rendering
   const activeTripIds = useMemo(() => driver?.activeTripIds || [], [driver]);
   const isCarpool = packageSlug === CarPackageSlug.CARPOOL;
+
+  useEffect(() => {
+    if (activeTrip || activeTripIds.length === 0) return;
+
+    let cancelled = false;
+
+    const hydrateActiveTrip = async () => {
+      try {
+        const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', activeTripIds[0]);
+        const response = await fetch(url);
+        if (!response.ok) return;
+
+        const { data } = await response.json();
+        if (!cancelled && data) {
+          setActiveTrip(data);
+          setTripStatus(TripEvents.DriverTripAccept);
+        }
+      } catch (error) {
+        console.error("Failed to hydrate active trip", error);
+      }
+    };
+
+    hydrateActiveTrip();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTrip, activeTripIds, setActiveTrip, setTripStatus]);
 
 
   if (error) {
