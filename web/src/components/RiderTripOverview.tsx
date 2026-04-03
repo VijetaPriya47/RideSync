@@ -33,6 +33,9 @@ export const RiderTripOverview = ({
 }: TripOverviewProps) => {
   const [timeLeft, setTimeLeft] = useState(120);
   const [timerEnded, setTimerEnded] = useState(false);
+  const showDriverAssignedCard =
+    status === TripEvents.DriverAssigned ||
+    status === TripEvents.PaymentSessionCreated;
 
   useEffect(() => {
     if (status === TripEvents.Created) {
@@ -82,25 +85,6 @@ export const RiderTripOverview = ({
     )
   }
 
-  if (status === TripEvents.PaymentSessionCreated && paymentSession) {
-    return (
-      <TripOverviewCard
-        title="Payment Required"
-        description="Please complete the payment to confirm your trip"
-      >
-        <div className="flex flex-col gap-4">
-          <DriverCard driver={assignedDriver} />
-
-          <div className="text-sm text-gray-500">
-            <p>Amount: {paymentSession.amount} {paymentSession.currency}</p>
-            <p>Trip ID: {paymentSession.tripID}</p>
-          </div>
-          <StripePaymentButton paymentSession={paymentSession} />
-        </div>
-      </TripOverviewCard>
-    )
-  }
-
   // Handled by showIncreasePrompt
   /*
   if (status === TripEvents.NoDriversFound) {
@@ -117,11 +101,15 @@ export const RiderTripOverview = ({
   }
   */
 
-  if (status === TripEvents.DriverAssigned) {
+  if (showDriverAssignedCard) {
     return (
       <TripOverviewCard
-        title="Driver assigned!"
-        description="Your driver is on the way to pick you up."
+        title={paymentSession ? "Driver assigned and payment ready!" : "Driver assigned!"}
+        description={
+          paymentSession
+            ? "Your driver is on the way. Complete payment from this window to confirm your trip."
+            : "Your driver is on the way to pick you up."
+        }
       >
         <div className="flex flex-col gap-4">
           {/* Pulsing arrival badge */}
@@ -139,6 +127,21 @@ export const RiderTripOverview = ({
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-sm text-blue-700 text-center font-medium">
             📍 Driver is heading to your pickup location
           </div>
+
+          {assignedDriver && <DriverCard driver={assignedDriver} />}
+
+          {paymentSession && (
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="mb-3 text-center">
+                <p className="text-sm font-semibold text-emerald-800">Payment required</p>
+                <p className="mt-1 text-sm text-emerald-700">
+                  Amount: {paymentSession.amount} {paymentSession.currency}
+                </p>
+                <p className="mt-1 text-xs text-emerald-600">Trip ID: {paymentSession.tripID}</p>
+              </div>
+              <StripePaymentButton paymentSession={paymentSession} />
+            </div>
+          )}
         </div>
         <Button variant="destructive" className="w-full mt-4" onClick={onCancel}>
           Cancel current trip
