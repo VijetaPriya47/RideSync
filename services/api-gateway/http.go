@@ -19,7 +19,7 @@ import (
 
 var tracer = tracing.GetTracer("api-gateway")
 
-func handleTripStart(w http.ResponseWriter, r *http.Request) {
+func handleTripStart(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clients.TripServiceClient) {
 	ctx, span := tracer.Start(r.Context(), "handleTripStart")
 	defer span.End()
 
@@ -36,20 +36,7 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	// Why we need to create a new client for each connection:
-	// because if a service is down, we don't want to block the whole application
-	// so we create a new client for each connection
-	tripService, err := grpc_clients.NewTripServiceClient()
-	if err != nil {
-		log.Printf("Failed to create trip service client: %v", err)
-		writeJSONError(w, http.StatusInternalServerError, "Internal server error")
-		return
-	}
-
-	// Don't forget to close the client to avoid resource leaks!
-	defer tripService.Close()
-
-	trip, err := tripService.Client.CreateTrip(ctx, reqBody.toProto())
+	trip, err := tripGRPC.Client.CreateTrip(ctx, reqBody.toProto())
 	if err != nil {
 		log.Printf("DEBUG: gRPC CreateTrip failed: %v", err)
 		writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to start trip: %v", err))
@@ -61,7 +48,7 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, response)
 }
 
-func handleTripPreview(w http.ResponseWriter, r *http.Request) {
+func handleTripPreview(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clients.TripServiceClient) {
 	ctx, span := tracer.Start(r.Context(), "handleTripPreview")
 	defer span.End()
 
@@ -84,20 +71,7 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Why we need to create a new client for each connection:
-	// because if a service is down, we don't want to block the whole application
-	// so we create a new client for each connection
-	tripService, err := grpc_clients.NewTripServiceClient()
-	if err != nil {
-		log.Printf("Failed to create trip service client: %v", err)
-		writeJSONError(w, http.StatusInternalServerError, "Internal server error")
-		return
-	}
-
-	// Don't forget to close the client to avoid resource leaks!
-	defer tripService.Close()
-
-	tripPreview, err := tripService.Client.PreviewTrip(ctx, reqBody.toProto())
+	tripPreview, err := tripGRPC.Client.PreviewTrip(ctx, reqBody.toProto())
 	if err != nil {
 		log.Printf("DEBUG: gRPC PreviewTrip failed: %v", err)
 		writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to preview trip: %v", err))
@@ -109,7 +83,7 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, response)
 }
 
-func handleIncreaseTripFare(w http.ResponseWriter, r *http.Request) {
+func handleIncreaseTripFare(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clients.TripServiceClient) {
 	ctx, span := tracer.Start(r.Context(), "handleIncreaseTripFare")
 	defer span.End()
 
@@ -130,15 +104,7 @@ func handleIncreaseTripFare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tripService, err := grpc_clients.NewTripServiceClient()
-	if err != nil {
-		log.Printf("Failed to create trip service client: %v", err)
-		writeJSONError(w, http.StatusInternalServerError, "Internal server error")
-		return
-	}
-	defer tripService.Close()
-
-	resp, err := tripService.Client.IncreaseTripFare(ctx, reqBody.toProto())
+	resp, err := tripGRPC.Client.IncreaseTripFare(ctx, reqBody.toProto())
 	if err != nil {
 		log.Printf("IncreaseTripFare: %v", err)
 		writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("Failed to increase fare: %v", err))

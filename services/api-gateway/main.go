@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"ride-sharing/services/api-gateway/grpc_clients"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
 	"ride-sharing/shared/tracing"
@@ -51,13 +52,31 @@ func main() {
 
 	startDriverSearchExpiredConsumer(rabbitmq)
 
-	mux.Handle("/trip/preview", tracing.WrapHandlerFunc(enableCORS(handleTripPreview), "/trip/preview"))
-	mux.Handle("/trip/start", tracing.WrapHandlerFunc(enableCORS(handleTripStart), "/trip/start"))
-	mux.Handle("/trip/increase-fare", tracing.WrapHandlerFunc(enableCORS(handleIncreaseTripFare), "/trip/increase-fare"))
+	tripGRPC, err := grpc_clients.NewTripServiceClient()
+	if err != nil {
+		log.Fatalf("Failed to create trip service gRPC client: %v", err)
+	}
+	defer tripGRPC.Close()
+
+	driverGRPC, err := grpc_clients.NewDriverServiceClient()
+	if err != nil {
+		log.Fatalf("Failed to create driver service gRPC client: %v", err)
+	}
+	defer driverGRPC.Close()
+
+	mux.Handle("/trip/preview", tracing.WrapHandlerFunc(enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		handleTripPreview(w, r, tripGRPC)
+	}), "/trip/preview"))
+	mux.Handle("/trip/start", tracing.WrapHandlerFunc(enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		handleTripStart(w, r, tripGRPC)
+	}), "/trip/start"))
+	mux.Handle("/trip/increase-fare", tracing.WrapHandlerFunc(enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		handleIncreaseTripFare(w, r, tripGRPC)
+	}), "/trip/increase-fare"))
 	mux.Handle("/trip/update-seats", tracing.WrapHandlerFunc(enableCORS(handleUpdateTripSeats), "/trip/update-seats"))
 	mux.Handle("/trip/", tracing.WrapHandlerFunc(enableCORS(handleGetTripStatus), "/trip/"))
 	mux.Handle("/ws/drivers", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleDriversWebSocket(w, r, rabbitmq)
+		handleDriversWebSocket(w, r, rabbitmq, driverGRPC)
 	}, "/ws/drivers"))
 	mux.Handle("/ws/riders", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleRidersWebSocket(w, r, rabbitmq)

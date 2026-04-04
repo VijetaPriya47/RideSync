@@ -10,12 +10,14 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type tripServiceClient struct {
+// TripServiceClient wraps a long-lived gRPC connection to Trip Service. Create once at process
+// startup with NewTripServiceClient, reuse for all requests, and Close on shutdown.
+type TripServiceClient struct {
 	Client pb.TripServiceClient
 	conn   *grpc.ClientConn
 }
 
-func NewTripServiceClient() (*tripServiceClient, error) {
+func NewTripServiceClient() (*TripServiceClient, error) {
 	tripServiceURL := os.Getenv("TRIP_SERVICE_URL")
 	if tripServiceURL == "" {
 		tripServiceURL = "trip-service:8080"
@@ -37,13 +39,13 @@ func NewTripServiceClient() (*tripServiceClient, error) {
 
 	client := pb.NewTripServiceClient(conn)
 
-	return &tripServiceClient{
+	return &TripServiceClient{
 		Client: client,
 		conn:   conn,
 	}, nil
 }
 
-func (c *tripServiceClient) Close() {
+func (c *TripServiceClient) Close() {
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil {
 			return
