@@ -57,3 +57,15 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.1
 make generate-proto
 ```
+
+## Web UI (`web/`)
+
+Next.js routes:
+
+- `/login` — Google (riders/drivers) and email/password (admin/business); forgot-password request; requires `NEXT_PUBLIC_GOOGLE_CLIENT_ID` for Google.
+- `/finance/me` — customer transaction table (JWT).
+- `/dashboard` — business/admin finance JSON panels (revenue, regions, categories).
+- `/admin` — audit log JSON, create business/admin users.
+- `/reset-password` — optional `?token=` query or paste token.
+
+The home map flows require a **customer** JWT: sign in before **I Need a Ride** / **I Want to Drive**. Trip HTTP calls send `Authorization: Bearer`.

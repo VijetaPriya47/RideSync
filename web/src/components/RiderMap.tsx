@@ -6,7 +6,7 @@ import { useRiderStreamConnection } from '../hooks/useRiderStreamConnection';
 import { MapContainer, Marker, Popup, Rectangle, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet';
 import { getGeohashBounds } from '../utils/geohash';
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { MapClickHandler } from './MapClickHandler';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -14,6 +14,7 @@ import { Search, MapPin, Navigation, History, Loader2 } from 'lucide-react';
 import { RouteFare, RequestRideProps, TripPreview, HTTPTripStartResponse } from "../types";
 import { RoutingControl } from "./RoutingControl";
 import { API_URL } from '../constants';
+import { apiFetch } from '../lib/api';
 import { RiderTripOverview } from './RiderTripOverview';
 import { BackendEndpoints, HTTPTripPreviewRequestPayload, HTTPTripPreviewResponse, HTTPTripStartRequestPayload, TripEvents } from '../contracts';
 
@@ -48,6 +49,7 @@ const driverMarker = new L.Icon({
 });
 
 interface RiderMapProps {
+    userId: string;
     onRouteSelected?: (distance: number) => void;
 }
 
@@ -66,7 +68,7 @@ function MapMover({ center, zoom }: { center: [number, number], zoom: number }) 
     return null;
 }
 
-export default function RiderMap({ onRouteSelected }: RiderMapProps) {
+export default function RiderMap({ userId, onRouteSelected }: RiderMapProps) {
     const [trip, setTrip] = useState<TripPreview | null>(null)
     const [selectedCarPackage, setSelectedCarPackage] = useState<RouteFare | null>(null)
     const [destination, setDestination] = useState<[number, number] | null>(null)
@@ -78,7 +80,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     const [gpsAvailable, setGpsAvailable] = useState(true)
 
     const mapRef = useRef<L.Map>(null)
-    const userID = useMemo(() => crypto.randomUUID(), [])
+    const userID = userId
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const {
@@ -187,7 +189,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             requestedSeats: 1,
         } as HTTPTripPreviewRequestPayload
 
-        const response = await fetch(`${API_URL}${BackendEndpoints.PREVIEW_TRIP}`, {
+        const response = await apiFetch(BackendEndpoints.PREVIEW_TRIP, {
             method: 'POST',
             body: JSON.stringify(payload),
         })
@@ -226,7 +228,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
             userID: userID,
         } as HTTPTripStartRequestPayload
 
-        const response = await fetch(`${API_URL}${BackendEndpoints.START_TRIP}`, {
+        const response = await apiFetch(BackendEndpoints.START_TRIP, {
             method: 'POST',
             body: JSON.stringify(payload),
         })
@@ -253,8 +255,8 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         if (!trip?.tripID || !selectedCarPackage?.totalPriceInCents) return;
 
         try {
-            const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', trip.tripID);
-            const statusResp = await fetch(url);
+            const path = BackendEndpoints.GET_TRIP.replace('{id}', trip.tripID);
+            const statusResp = await apiFetch(path);
             if (statusResp.ok) {
                 const { data } = await statusResp.json();
                 if (data.status === 'accepted' || data.status === 'completed' || data.status === 'cancelled') {
@@ -268,10 +270,9 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
         const newPrice = selectedCarPackage.totalPriceInCents * (1 + percentage / 100);
         const payload = { tripID: trip.tripID, userID: userID, totalPriceInCents: newPrice };
-        const response = await fetch(`${API_URL}${BackendEndpoints.INCREASE_TRIP_FARE}`, {
+        const response = await apiFetch(BackendEndpoints.INCREASE_TRIP_FARE, {
             method: 'POST',
             body: JSON.stringify(payload),
-            headers: { 'Content-Type': 'application/json' }
         });
         if (response.ok) {
             setSelectedCarPackage({ ...selectedCarPackage, totalPriceInCents: newPrice });

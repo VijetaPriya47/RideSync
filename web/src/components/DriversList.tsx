@@ -5,7 +5,7 @@ import { convertMetersToKilometers, convertSecondsToMinutes } from "../utils/mat
 import { cn } from "../lib/utils"
 import { PackagesMeta } from "./PackagesMeta"
 import { useState } from "react"
-import { API_URL } from "../constants"
+import { apiFetch } from "../lib/api"
 import { BackendEndpoints } from "../contracts"
 
 interface DriverListProps {
@@ -22,10 +22,9 @@ export function DriverList({ trip, onPackageSelect, onCancel }: DriverListProps)
     if (fare.packageSlug === 'carpool') {
       setIsUpdating(true);
       try {
-        await fetch(`${API_URL}${BackendEndpoints.UPDATE_TRIP_SEATS}`, {
+        await apiFetch(BackendEndpoints.UPDATE_TRIP_SEATS, {
           method: 'POST',
           body: JSON.stringify({ fareID: fare.id, seats: carpoolSeats }),
-          headers: { 'Content-Type': 'application/json' }
         });
         fare.requestedSeats = carpoolSeats;
       } catch (e) {

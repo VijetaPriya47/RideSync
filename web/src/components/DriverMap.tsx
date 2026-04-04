@@ -12,7 +12,7 @@ import { DriverCard } from "./DriverCard";
 import { TripEvents, BackendEndpoints } from "../contracts";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
-import { API_URL } from "../constants";
+import { apiFetch } from "../lib/api";
 import { LocateFixed } from "lucide-react";
 
 const START_LOCATION: Coordinate = {
@@ -38,9 +38,9 @@ const destinationMarker = new L.Icon({
   iconAnchor: [20, 40], // Anchor point
 });
 
-export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
+export const DriverMap = ({ packageSlug, userId }: { packageSlug: CarPackageSlug; userId: string }) => {
   const mapRef = useRef<L.Map>(null)
-  const userID = useMemo(() => crypto.randomUUID(), [])
+  const userID = userId
   const [riderLocation, setRiderLocation] = useState<Coordinate>(START_LOCATION)
   const [completedTrip, setCompletedTrip] = useState<{
     tripId: string;
@@ -114,8 +114,8 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     }
 
     try {
-      const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', requestedTrip.id);
-      const statusResp = await fetch(url);
+      const path = BackendEndpoints.GET_TRIP.replace('{id}', requestedTrip.id);
+      const statusResp = await apiFetch(path);
       if (statusResp.ok) {
         const { data } = await statusResp.json();
         if (data.status === 'accepted' || data.status === 'completed' || data.status === 'cancelled') {
@@ -165,8 +165,6 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     resetTripStatus()
   }
 
-  console.log({ requestedTrip })
-
   // destination is the last coordinate in the route
   const destination = useMemo(() => {
     const geoLen = requestedTrip?.route?.geometry?.length || 0;
@@ -194,8 +192,8 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
     const hydrateActiveTrip = async () => {
       try {
-        const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', activeTripIds[0]);
-        const response = await fetch(url);
+        const path = BackendEndpoints.GET_TRIP.replace('{id}', activeTripIds[0]);
+        const response = await apiFetch(path);
         if (!response.ok) return;
 
         const { data } = await response.json();
@@ -222,8 +220,8 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
     const syncActiveTripStatus = async () => {
       try {
-        const url = `${API_URL}${BackendEndpoints.GET_TRIP}`.replace('{id}', activeTrip.id);
-        const response = await fetch(url);
+        const path = BackendEndpoints.GET_TRIP.replace('{id}', activeTrip.id);
+        const response = await apiFetch(path);
         if (!response.ok) return;
 
         const { data } = await response.json();

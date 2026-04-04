@@ -166,6 +166,7 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8081
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=
     depends_on:
       - api-gateway
 
