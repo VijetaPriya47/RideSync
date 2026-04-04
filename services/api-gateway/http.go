@@ -11,10 +11,14 @@ import (
 	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
+	pb "ride-sharing/shared/proto/trip"
 	"ride-sharing/shared/tracing"
 
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/webhook"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var tracer = tracing.GetTracer("api-gateway")
@@ -188,7 +192,10 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 	}
 }
 
-func handleUpdateTripSeats(w http.ResponseWriter, r *http.Request) {
+func handleUpdateTripSeats(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clients.TripServiceClient) {
+	ctx, span := tracer.Start(r.Context(), "handleUpdateTripSeats")
+	defer span.End()
+
 	if r.Method != http.MethodPost {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
@@ -203,17 +210,24 @@ func handleUpdateTripSeats(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	payload, _ := json.Marshal(reqBody)
-	tripServiceHttpUrl := env.GetString("TRIP_SERVICE_HTTP_URL", "http://ridesync:8080")
-	resp, err := http.Post(fmt.Sprintf("%s/fares/update-seats", tripServiceHttpUrl), "application/json", strings.NewReader(string(payload)))
-	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err.Error())
+	if reqBody.FareID == "" {
+		writeJSONError(w, http.StatusBadRequest, "fareID is required")
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		writeJSONError(w, resp.StatusCode, "failed to update seats")
+	_, err := tripGRPC.Client.UpdateFareSeats(ctx, &pb.UpdateFareSeatsRequest{
+		FareId: reqBody.FareID,
+		Seats:  reqBody.Seats,
+	})
+	if err != nil {
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.InvalidArgument:
+				writeJSONError(w, http.StatusBadRequest, st.Message())
+				return
+			}
+		}
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -230,8 +244,8 @@ func writeJSONError(w http.ResponseWriter, code int, message string) {
 	writeJSON(w, code, response)
 }
 
-func handleGetTripStatus(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "handleGetTripStatus")
+func handleGetTripStatus(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clients.TripServiceClient) {
+	ctx, span := tracer.Start(r.Context(), "handleGetTripStatus")
 	defer span.End()
 
 	if r.Method != http.MethodGet {
@@ -246,26 +260,40 @@ func handleGetTripStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	tripID := parts[2]
 
-	tripServiceHttpUrl := env.GetString("TRIP_SERVICE_HTTP_URL", "http://ridesync:8080")
-	resp, err := http.Get(fmt.Sprintf("%s/trips/%s", tripServiceHttpUrl, tripID))
+	protoResp, err := tripGRPC.Client.GetTrip(ctx, &pb.GetTripRequest{TripId: tripID})
 	if err != nil {
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.NotFound:
+				writeJSONError(w, http.StatusNotFound, st.Message())
+				return
+			case codes.InvalidArgument:
+				writeJSONError(w, http.StatusBadRequest, st.Message())
+				return
+			}
+		}
 		writeJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		writeJSONError(w, resp.StatusCode, "failed to get trip status")
+	t := protoResp.GetTrip()
+	if t == nil {
+		writeJSONError(w, http.StatusNotFound, "trip not found")
 		return
 	}
 
-	var data interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	mo := protojson.MarshalOptions{}
+	raw, err := mo.Marshal(t)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "failed to encode trip")
+		return
+	}
+	var data any
+	if err := json.Unmarshal(raw, &data); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "failed to decode response")
 		return
 	}
 
-	// We just proxy the data
 	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: data})
 }
 

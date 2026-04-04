@@ -75,4 +75,5 @@ type TripService interface {
 	GetTripByID(ctx context.Context, id string) (*TripModel, error)
 	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
 	IncreaseTripFare(ctx context.Context, tripID, userID string, totalPriceInCents float64) (*TripModel, error)
+	UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error
 }

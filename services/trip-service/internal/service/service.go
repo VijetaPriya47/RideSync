@@ -227,6 +227,10 @@ func (s *service) GetTripByID(ctx context.Context, id string) (*domain.TripModel
 	return s.repo.GetTripByID(ctx, id)
 }
 
+func (s *service) UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error {
+	return s.repo.UpdateRideFareSeats(ctx, fareID, seats)
+}
+
 func (s *service) UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error {
 	return s.repo.UpdateTrip(ctx, tripID, status, driver)
 }

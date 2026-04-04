@@ -175,9 +175,11 @@ h2Handler := h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http
 
 ### HTTP Endpoints (non-gRPC)
 
-The Trip Service also exposes plain HTTP routes used internally by the Driver Service:
+The Trip Service also exposes plain HTTP routes for callers that use `TRIP_SERVICE_HTTP_URL` (for example the Driver Service):
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /trips/{tripID}` | Used by Driver Service to validate trip state and current fare during dispatch loops |
-| `POST /fares/update-seats` | Decrements/restores carpool seat counts when a driver accepts or cancels |
+| `GET /trips/{tripID}` | Driver Service validates trip state and current fare during dispatch loops |
+| `POST /fares/update-seats` | Carpool seat updates from services that still use HTTP |
+
+The **API Gateway** uses the shared gRPC client to Trip Service for rider-facing flows, including `GetTrip` and `UpdateFareSeats` RPCs (same port as other Trip Service gRPC methods), so it does not open a new HTTP connection per request for those operations.

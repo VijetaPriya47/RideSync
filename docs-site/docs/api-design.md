@@ -133,7 +133,7 @@ Microservices communicate over gRPC with Protocol Buffers for typed contracts an
 
 ### Trip Service
 
-`TripService` owns trip preview and trip creation.
+`TripService` owns trip preview, creation, fare updates, reads, and carpool seat updates on fares.
 
 ```protobuf
 syntax = "proto3";
@@ -143,6 +143,9 @@ package trip;
 service TripService {
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
   rpc CreateTrip(CreateTripRequest) returns (CreateTripResponse);
+  rpc IncreaseTripFare(IncreaseTripFareRequest) returns (IncreaseTripFareResponse);
+  rpc GetTrip(GetTripRequest) returns (GetTripResponse);
+  rpc UpdateFareSeats(UpdateFareSeatsRequest) returns (UpdateFareSeatsResponse);
 }
 
 message PreviewTripRequest {
@@ -166,6 +169,31 @@ message CreateTripResponse {
   string tripID = 1;
   Trip trip = 2;
 }
+
+message IncreaseTripFareRequest {
+  string tripID = 1;
+  string userID = 2;
+  double totalPriceInCents = 3;
+}
+
+message IncreaseTripFareResponse {
+  Trip trip = 1;
+}
+
+message GetTripRequest {
+  string trip_id = 1;
+}
+
+message GetTripResponse {
+  Trip trip = 1;
+}
+
+message UpdateFareSeatsRequest {
+  string fare_id = 1;
+  int32 seats = 2;
+}
+
+message UpdateFareSeatsResponse {}
 
 message Coordinate {
   double latitude = 1;
@@ -206,7 +234,7 @@ message TripDriver {
 }
 ```
 
-`PreviewTrip` calculates route geometry, distance, duration, and fare options, typically using OSRM-backed routing. `CreateTrip` persists the selected fare and initializes the trip state used by downstream matching and payment flows.
+`PreviewTrip` calculates route geometry, distance, duration, and fare options, typically using OSRM-backed routing. `CreateTrip` persists the selected fare and initializes the trip state used by downstream matching and payment flows. The API Gateway uses gRPC `GetTrip` and `UpdateFareSeats` for HTTP routes that previously called Trip Service over plain HTTP, so those paths reuse the same long-lived gRPC connection as `PreviewTrip` and `CreateTrip`.
 
 ### Driver Service
 

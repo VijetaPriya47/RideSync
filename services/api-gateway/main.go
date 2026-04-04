@@ -73,8 +73,12 @@ func main() {
 	mux.Handle("/trip/increase-fare", tracing.WrapHandlerFunc(enableCORS(func(w http.ResponseWriter, r *http.Request) {
 		handleIncreaseTripFare(w, r, tripGRPC)
 	}), "/trip/increase-fare"))
-	mux.Handle("/trip/update-seats", tracing.WrapHandlerFunc(enableCORS(handleUpdateTripSeats), "/trip/update-seats"))
-	mux.Handle("/trip/", tracing.WrapHandlerFunc(enableCORS(handleGetTripStatus), "/trip/"))
+	mux.Handle("/trip/update-seats", tracing.WrapHandlerFunc(enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		handleUpdateTripSeats(w, r, tripGRPC)
+	}), "/trip/update-seats"))
+	mux.Handle("/trip/", tracing.WrapHandlerFunc(enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		handleGetTripStatus(w, r, tripGRPC)
+	}), "/trip/"))
 	mux.Handle("/ws/drivers", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleDriversWebSocket(w, r, rabbitmq, driverGRPC)
 	}, "/ws/drivers"))

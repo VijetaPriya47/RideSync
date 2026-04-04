@@ -8,6 +8,8 @@ service TripService {
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
   rpc CreateTrip(CreateTripRequest) returns (CreateTripResponse);
   rpc IncreaseTripFare(IncreaseTripFareRequest) returns (IncreaseTripFareResponse);
+  rpc GetTrip(GetTripRequest) returns (GetTripResponse);
+  rpc UpdateFareSeats(UpdateFareSeatsRequest) returns (UpdateFareSeatsResponse);
 }
 
 message PreviewTripRequest {
@@ -81,3 +83,18 @@ message IncreaseTripFareRequest {
 message IncreaseTripFareResponse {
   Trip trip = 1;
 }
+
+message GetTripRequest {
+  string trip_id = 1;
+}
+
+message GetTripResponse {
+  Trip trip = 1;
+}
+
+message UpdateFareSeatsRequest {
+  string fare_id = 1;
+  int32 seats = 2;
+}
+
+message UpdateFareSeatsResponse {}

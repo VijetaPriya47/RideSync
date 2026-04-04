@@ -112,3 +112,29 @@ func (h *gRPCHandler) IncreaseTripFare(ctx context.Context, req *pb.IncreaseTrip
 		Trip: trip.ToProto(),
 	}, nil
 }
+
+func (h *gRPCHandler) GetTrip(ctx context.Context, req *pb.GetTripRequest) (*pb.GetTripResponse, error) {
+	tripID := req.GetTripId()
+	if tripID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "trip_id is required")
+	}
+	trip, err := h.service.GetTripByID(ctx, tripID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get trip: %v", err)
+	}
+	if trip == nil {
+		return nil, status.Errorf(codes.NotFound, "trip not found")
+	}
+	return &pb.GetTripResponse{Trip: trip.ToProto()}, nil
+}
+
+func (h *gRPCHandler) UpdateFareSeats(ctx context.Context, req *pb.UpdateFareSeatsRequest) (*pb.UpdateFareSeatsResponse, error) {
+	fareID := req.GetFareId()
+	if fareID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "fare_id is required")
+	}
+	if err := h.service.UpdateRideFareSeats(ctx, fareID, req.GetSeats()); err != nil {
+		return nil, status.Errorf(codes.Internal, "%v", err)
+	}
+	return &pb.UpdateFareSeatsResponse{}, nil
+}
