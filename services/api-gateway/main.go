@@ -64,17 +64,11 @@ func main() {
 	}
 	defer driverGRPC.Close()
 
-	financeGRPC, err := grpc_clients.NewFinanceServiceClient()
+	platformGRPC, err := grpc_clients.NewPlatformGRPC()
 	if err != nil {
-		log.Fatalf("Failed to create finance service gRPC client: %v", err)
+		log.Fatalf("Failed to create platform-service gRPC client: %v", err)
 	}
-	defer financeGRPC.Close()
-
-	authGRPC, err := grpc_clients.NewUserAuthServiceClient()
-	if err != nil {
-		log.Fatalf("Failed to create user-auth service gRPC client: %v", err)
-	}
-	defer authGRPC.Close()
+	defer platformGRPC.Close()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -82,39 +76,39 @@ func main() {
 	})
 
 	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		handleAuthLogin(w, r, authGRPC)
+		handleAuthLogin(w, r, platformGRPC.Auth)
 	})
 	mux.HandleFunc("/api/auth/google", func(w http.ResponseWriter, r *http.Request) {
-		handleAuthGoogle(w, r, authGRPC)
+		handleAuthGoogle(w, r, platformGRPC.Auth)
 	})
 	mux.HandleFunc("/api/auth/forgot-password", func(w http.ResponseWriter, r *http.Request) {
-		handleAuthForgotPassword(w, r, authGRPC)
+		handleAuthForgotPassword(w, r, platformGRPC.Auth)
 	})
 	mux.HandleFunc("/api/auth/reset-password", func(w http.ResponseWriter, r *http.Request) {
-		handleAuthResetPassword(w, r, authGRPC)
+		handleAuthResetPassword(w, r, platformGRPC.Auth)
 	})
 
 	mux.HandleFunc("/api/finance/me", func(w http.ResponseWriter, r *http.Request) {
-		handleFinanceMe(w, r, financeGRPC)
+		handleFinanceMe(w, r, platformGRPC.Finance)
 	})
 	mux.HandleFunc("/api/finance/dashboard/revenue", func(w http.ResponseWriter, r *http.Request) {
-		handleFinanceDashboardRevenue(w, r, financeGRPC)
+		handleFinanceDashboardRevenue(w, r, platformGRPC.Finance)
 	})
 	mux.HandleFunc("/api/finance/dashboard/regions", func(w http.ResponseWriter, r *http.Request) {
-		handleFinanceDashboardRegions(w, r, financeGRPC)
+		handleFinanceDashboardRegions(w, r, platformGRPC.Finance)
 	})
 	mux.HandleFunc("/api/finance/dashboard/categories", func(w http.ResponseWriter, r *http.Request) {
-		handleFinanceDashboardCategories(w, r, financeGRPC)
+		handleFinanceDashboardCategories(w, r, platformGRPC.Finance)
 	})
 
 	mux.HandleFunc("/api/admin/system-logs", func(w http.ResponseWriter, r *http.Request) {
-		handleAdminSystemLogs(w, r, authGRPC)
+		handleAdminSystemLogs(w, r, platformGRPC.Auth)
 	})
 	mux.HandleFunc("/api/admin/users/business", func(w http.ResponseWriter, r *http.Request) {
-		handleAdminRegisterBusiness(w, r, authGRPC)
+		handleAdminRegisterBusiness(w, r, platformGRPC.Auth)
 	})
 	mux.HandleFunc("/api/admin/users/admin", func(w http.ResponseWriter, r *http.Request) {
-		handleAdminRegisterAdmin(w, r, authGRPC)
+		handleAdminRegisterAdmin(w, r, platformGRPC.Auth)
 	})
 
 	mux.Handle("/trip/preview", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"ride-sharing/services/finance-service/internal/domain"
+	"ride-sharing/services/platform-service/internal/domain"
 	pb "ride-sharing/shared/proto/finance"
 )
 

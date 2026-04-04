@@ -43,31 +43,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  finance-service:
+  platform-service:
     build:
       context: .
-      dockerfile: infra/development/docker/finance-service.Dockerfile
-    container_name: finance-service
+      dockerfile: infra/development/docker/platform-service.Dockerfile
+    container_name: platform-service
     environment:
       - DATABASE_URL=postgres://ridesync:ridesync@postgres:5432/ridesync?sslmode=disable
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
       - GRPC_ADDR=:9094
-      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
-      - ENVIRONMENT=development
-    depends_on:
-      - postgres
-      - rabbitmq
-      - jaeger
-
-  user-auth-service:
-    build:
-      context: .
-      dockerfile: infra/development/docker/user-auth-service.Dockerfile
-    container_name: user-auth-service
-    environment:
-      - DATABASE_URL=postgres://ridesync:ridesync@postgres:5432/ridesync?sslmode=disable
-      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
-      - GRPC_ADDR=:9095
       - JWT_SECRET=dev-insecure-change-me
       - JWT_ISSUER=ridesync-auth
       - JWT_AUDIENCE=ridesync-gateway
@@ -95,16 +79,14 @@ services:
       - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - ENVIRONMENT=development
       - TRIP_SERVICE_URL=trip-service:8080
-      - FINANCE_SERVICE_URL=finance-service:9094
-      - USER_AUTH_SERVICE_URL=user-auth-service:9095
+      - PLATFORM_SERVICE_URL=platform-service:9094
       - JWT_SECRET=dev-insecure-change-me
       - JWT_ISSUER=ridesync-auth
       - JWT_AUDIENCE=ridesync-gateway
     depends_on:
       - rabbitmq
       - jaeger
-      - finance-service
-      - user-auth-service
+      - platform-service
       - trip-service
 
   trip-service:

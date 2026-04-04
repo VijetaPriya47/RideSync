@@ -143,8 +143,8 @@ The system relies on dedicated RabbitMQ queues to handle all events. Below is an
 
 ### Finance & audit (2 queues)
 
-12. **`finance_payment_success`**: Also bound to `payment.event.success`. Consumed by **finance-service** to append idempotent payment rows to PostgreSQL.
-13. **`audit_logs`**: Bound to `audit.event.write`. The **API Gateway** publishes small JSON payloads for mutating HTTP requests; **user-auth-service** writes them to the `audit_logs` table.
+12. **`finance_payment_success`**: Also bound to `payment.event.success`. Consumed by **platform-service** to append idempotent payment rows to PostgreSQL.
+13. **`audit_logs`**: Bound to `audit.event.write`. The **API Gateway** publishes small JSON payloads for mutating HTTP requests; **platform-service** writes them to the `audit_logs` table.
 
 ---
 

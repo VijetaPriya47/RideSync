@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"ride-sharing/services/user-auth-service/internal/domain"
+	"ride-sharing/services/platform-service/internal/domain"
 	"ride-sharing/shared/authjwt"
 	pb "ride-sharing/shared/proto/auth"
 )

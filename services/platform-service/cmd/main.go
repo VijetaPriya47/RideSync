@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ride-sharing/services/finance-service/internal/infrastructure/events"
-	grpcinfra "ride-sharing/services/finance-service/internal/infrastructure/grpc"
-	"ride-sharing/services/finance-service/internal/infrastructure/repository"
-	"ride-sharing/services/finance-service/internal/service"
+	"ride-sharing/services/platform-service/internal/infrastructure/events"
+	"ride-sharing/services/platform-service/internal/infrastructure/platgrpc"
+	"ride-sharing/services/platform-service/internal/infrastructure/repository"
+	"ride-sharing/services/platform-service/internal/service"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
 	"ride-sharing/shared/sqlmigrate"
@@ -22,9 +22,8 @@ import (
 )
 
 func main() {
-	// Initialize Tracing
 	tracerCfg := tracing.Config{
-		ServiceName:    "finance-service",
+		ServiceName:    "platform-service",
 		Environment:    env.GetString("ENVIRONMENT", "development"),
 		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
 	}
@@ -65,11 +64,19 @@ func main() {
 	defer rmq.Close()
 
 	ledgerRepo := repository.NewPostgresLedger(pool)
+	userRepo := repository.NewPostgresUserRepository(pool)
 	financeSvc := service.NewFinanceService(ledgerRepo)
+	authSvc := service.NewAuthService(userRepo)
 
-	paymentConsumer := events.NewPaymentConsumer(rmq, financeSvc)
-	if err := paymentConsumer.Listen(); err != nil {
+	if err := authSvc.EnsureBootstrap(ctx); err != nil {
+		log.Fatalf("Failed to bootstrap super admin: %v", err)
+	}
+
+	if err := events.NewPaymentConsumer(rmq, financeSvc).Listen(); err != nil {
 		log.Fatalf("Failed to start finance payment consumer: %v", err)
+	}
+	if err := events.NewAuditConsumer(rmq, authSvc).Listen(); err != nil {
+		log.Fatalf("Failed to start audit consumer: %v", err)
 	}
 
 	grpcAddr := env.GetString("GRPC_ADDR", ":9094")
@@ -79,10 +86,11 @@ func main() {
 	}
 
 	srv := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
-	grpcinfra.NewGRPCHandler(srv, financeSvc)
+	platgrpc.RegisterFinance(srv, financeSvc)
+	platgrpc.RegisterUserAuth(srv, authSvc)
 
 	go func() {
-		log.Printf("Starting gRPC server finance-service on %s", grpcAddr)
+		log.Printf("Starting gRPC server platform-service (finance + user-auth) on %s", grpcAddr)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC server error: %v", err)
 			cancel()
@@ -90,6 +98,6 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	log.Println("Shutting down finance-service...")
+	log.Println("Shutting down platform-service...")
 	srv.GracefulStop()
 }

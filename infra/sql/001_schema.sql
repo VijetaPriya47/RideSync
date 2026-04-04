@@ -1,5 +1,5 @@
 -- RideSync finance + RBAC schema (PostgreSQL)
--- Applied by finance-service and user-auth-service on startup (idempotent).
+-- Applied by platform-service on startup (idempotent).
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

@@ -75,19 +75,13 @@ docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/payment-serv
 docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/payment-service:latest
 ```
 
-**Finance Service** (ledger gRPC + RabbitMQ consumer; requires PostgreSQL and same `RABBITMQ_URI` as payment)
+**Platform Service** (finance ledger gRPC + user auth gRPC + RabbitMQ payment + audit consumers; PostgreSQL + same `RABBITMQ_URI` as payment)
 ```bash
-docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/finance-service:latest --platform linux/amd64 -f infra/production/docker/finance-service.Dockerfile .
-docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/finance-service:latest
+docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/platform-service:latest --platform linux/amd64 -f infra/production/docker/platform-service.Dockerfile .
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/platform-service:latest
 ```
 
-**User Auth Service** (auth gRPC + audit consumer; requires PostgreSQL and RabbitMQ)
-```bash
-docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/user-auth-service:latest --platform linux/amd64 -f infra/production/docker/user-auth-service.Dockerfile .
-docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/ride-sharing/user-auth-service:latest
-```
-
-Production Kubernetes manifests under `infra/production/k8s/` do not yet include Deployments for finance or user-auth; after pushing these images, add workloads and wire `FINANCE_SERVICE_URL` / `USER_AUTH_SERVICE_URL` on the API gateway. See [Finance & RBAC](../features/finance-rbac.md) for ports and environment variables.
+Production Kubernetes manifests under `infra/production/k8s/` do not yet include a Deployment for platform-service; after pushing this image, add a workload and set `PLATFORM_SERVICE_URL` on the API gateway (or legacy `FINANCE_SERVICE_URL` / `USER_AUTH_SERVICE_URL`). See [Finance & RBAC](../features/finance-rbac.md) for ports and environment variables.
 
 ## 4. Deploy to GKE
 

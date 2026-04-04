@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"ride-sharing/services/user-auth-service/internal/domain"
-	"ride-sharing/services/user-auth-service/internal/infrastructure/repository"
+	"ride-sharing/services/platform-service/internal/domain"
+	"ride-sharing/services/platform-service/internal/infrastructure/repository"
 	"ride-sharing/shared/authjwt"
 	"ride-sharing/shared/env"
 	pb "ride-sharing/shared/proto/auth"

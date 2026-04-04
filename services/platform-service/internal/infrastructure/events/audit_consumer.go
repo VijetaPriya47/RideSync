@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"ride-sharing/services/user-auth-service/internal/domain"
+	"ride-sharing/services/platform-service/internal/domain"
 	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/messaging"
 

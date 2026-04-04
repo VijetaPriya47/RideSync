@@ -1,29 +1,26 @@
-package grpc
+package platgrpc
 
 import (
 	"context"
 	"errors"
 
-	"ride-sharing/services/user-auth-service/internal/domain"
-	"ride-sharing/services/user-auth-service/internal/service"
+	"ride-sharing/services/platform-service/internal/domain"
+	"ride-sharing/services/platform-service/internal/service"
 	pb "ride-sharing/shared/proto/auth"
 
-	"google.golang.org/grpc"
+	grpcstd "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type gRPCHandler struct {
+type authHandler struct {
 	pb.UnimplementedUserAuthServiceServer
-
 	svc domain.AuthService
 }
 
-// NewGRPCHandler registers UserAuthService on the gRPC server.
-func NewGRPCHandler(server *grpc.Server, svc domain.AuthService) *gRPCHandler {
-	h := &gRPCHandler{svc: svc}
-	pb.RegisterUserAuthServiceServer(server, h)
-	return h
+// RegisterUserAuth registers UserAuthService on the gRPC server.
+func RegisterUserAuth(server *grpcstd.Server, svc domain.AuthService) {
+	pb.RegisterUserAuthServiceServer(server, &authHandler{svc: svc})
 }
 
 func userSummary(u *domain.User) *pb.UserSummary {
@@ -33,7 +30,7 @@ func userSummary(u *domain.User) *pb.UserSummary {
 	return &pb.UserSummary{Id: u.ID, Email: u.Email, Role: u.Role}
 }
 
-func (h *gRPCHandler) LoginLocal(ctx context.Context, req *pb.LoginLocalRequest) (*pb.LoginLocalResponse, error) {
+func (h *authHandler) LoginLocal(ctx context.Context, req *pb.LoginLocalRequest) (*pb.LoginLocalResponse, error) {
 	tok, u, err := h.svc.LoginLocal(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
 		switch {
@@ -48,7 +45,7 @@ func (h *gRPCHandler) LoginLocal(ctx context.Context, req *pb.LoginLocalRequest)
 	return &pb.LoginLocalResponse{Jwt: tok, User: userSummary(u)}, nil
 }
 
-func (h *gRPCHandler) GoogleVerify(ctx context.Context, req *pb.GoogleVerifyRequest) (*pb.GoogleVerifyResponse, error) {
+func (h *authHandler) GoogleVerify(ctx context.Context, req *pb.GoogleVerifyRequest) (*pb.GoogleVerifyResponse, error) {
 	tok, u, err := h.svc.GoogleVerify(ctx, req.GetIdToken())
 	if err != nil {
 		switch {
@@ -67,7 +64,7 @@ func (h *gRPCHandler) GoogleVerify(ctx context.Context, req *pb.GoogleVerifyRequ
 	return &pb.GoogleVerifyResponse{Jwt: tok, User: userSummary(u)}, nil
 }
 
-func (h *gRPCHandler) RegisterBusiness(ctx context.Context, req *pb.RegisterBusinessRequest) (*pb.RegisterBusinessResponse, error) {
+func (h *authHandler) RegisterBusiness(ctx context.Context, req *pb.RegisterBusinessRequest) (*pb.RegisterBusinessResponse, error) {
 	u, err := h.svc.RegisterBusiness(ctx, req.GetAdminUserId(), req.GetEmail(), req.GetPassword())
 	if err != nil {
 		switch {
@@ -82,7 +79,7 @@ func (h *gRPCHandler) RegisterBusiness(ctx context.Context, req *pb.RegisterBusi
 	return &pb.RegisterBusinessResponse{User: userSummary(u)}, nil
 }
 
-func (h *gRPCHandler) RegisterAdmin(ctx context.Context, req *pb.RegisterAdminRequest) (*pb.RegisterAdminResponse, error) {
+func (h *authHandler) RegisterAdmin(ctx context.Context, req *pb.RegisterAdminRequest) (*pb.RegisterAdminResponse, error) {
 	u, err := h.svc.RegisterAdmin(ctx, req.GetAdminUserId(), req.GetEmail(), req.GetPassword())
 	if err != nil {
 		switch {
@@ -97,21 +94,21 @@ func (h *gRPCHandler) RegisterAdmin(ctx context.Context, req *pb.RegisterAdminRe
 	return &pb.RegisterAdminResponse{User: userSummary(u)}, nil
 }
 
-func (h *gRPCHandler) RequestPasswordReset(ctx context.Context, req *pb.RequestPasswordResetRequest) (*pb.RequestPasswordResetResponse, error) {
+func (h *authHandler) RequestPasswordReset(ctx context.Context, req *pb.RequestPasswordResetRequest) (*pb.RequestPasswordResetResponse, error) {
 	if err := h.svc.RequestPasswordReset(ctx, req.GetEmail()); err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 	return &pb.RequestPasswordResetResponse{}, nil
 }
 
-func (h *gRPCHandler) ResetPassword(ctx context.Context, req *pb.ResetPasswordRequest) (*pb.ResetPasswordResponse, error) {
+func (h *authHandler) ResetPassword(ctx context.Context, req *pb.ResetPasswordRequest) (*pb.ResetPasswordResponse, error) {
 	if err := h.svc.ResetPassword(ctx, req.GetToken(), req.GetNewPassword()); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 	return &pb.ResetPasswordResponse{}, nil
 }
 
-func (h *gRPCHandler) ListAuditLogs(ctx context.Context, req *pb.ListAuditLogsRequest) (*pb.ListAuditLogsResponse, error) {
+func (h *authHandler) ListAuditLogs(ctx context.Context, req *pb.ListAuditLogsRequest) (*pb.ListAuditLogsResponse, error) {
 	entries, err := h.svc.ListAuditLogs(ctx, req.GetLimit(), req.GetBeforeTsRfc3339())
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidAuditBefore) {
@@ -122,7 +119,7 @@ func (h *gRPCHandler) ListAuditLogs(ctx context.Context, req *pb.ListAuditLogsRe
 	return &pb.ListAuditLogsResponse{Entries: entries}, nil
 }
 
-func (h *gRPCHandler) InsertAuditLog(ctx context.Context, req *pb.InsertAuditLogRequest) (*pb.InsertAuditLogResponse, error) {
+func (h *authHandler) InsertAuditLog(ctx context.Context, req *pb.InsertAuditLogRequest) (*pb.InsertAuditLogResponse, error) {
 	if err := h.svc.InsertAuditLog(ctx, req.GetMethod(), req.GetPath(), req.GetActorUserId(), req.GetRole(), req.GetIp(), req.GetDetailJson()); err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}

@@ -21,7 +21,7 @@ RideSync adds a non-destructive finance ledger, user authentication with three r
 
 **Authenticated:** All other routes require `Authorization: Bearer <jwt>`.
 
-- `GET /api/finance/me` — customer; lists ledger rows from `finance-service`.
+- `GET /api/finance/me` — customer; lists ledger rows from `platform-service` (`FinanceService` gRPC).
 - `GET /api/finance/dashboard/revenue|regions|categories` — business or admin; query params `from`, `to` (RFC3339) where supported.
 - `GET /api/admin/system-logs` — admin; query `limit`, `before` (RFC3339).
 - `POST /api/admin/users/business`, `POST /api/admin/users/admin` — admin only.
@@ -30,16 +30,14 @@ Trip `userID` in JSON is ignored for identity: the gateway overwrites it with th
 
 ## Environment variables
 
-**API Gateway:** `JWT_SECRET`, `JWT_ISSUER` (default `ridesync-auth`), `JWT_AUDIENCE` (default `ridesync-gateway`), `FINANCE_SERVICE_URL`, `USER_AUTH_SERVICE_URL`, `TRIP_SERVICE_URL`, `RABBITMQ_URI`.
+**API Gateway:** `JWT_SECRET`, `JWT_ISSUER` (default `ridesync-auth`), `JWT_AUDIENCE` (default `ridesync-gateway`), `PLATFORM_SERVICE_URL` (preferred; single gRPC endpoint for finance + auth). For backward compatibility, `FINANCE_SERVICE_URL` or `USER_AUTH_SERVICE_URL` are used if `PLATFORM_SERVICE_URL` is unset. Also `TRIP_SERVICE_URL`, `RABBITMQ_URI`.
 
-**user-auth-service:** `DATABASE_URL`, `SQL_SCHEMA_PATH` (default `infra/sql/001_schema.sql`), `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`, `GOOGLE_CLIENT_ID` (for Google ID token verification), `JWT_*`, `PUBLIC_GATEWAY_URL` (simulated reset email logs).
-
-**finance-service:** `DATABASE_URL`, `SQL_SCHEMA_PATH`, `RABBITMQ_URI`, `GRPC_ADDR` (default `:9094`).
+**platform-service** (combined finance ledger + user auth + audit): `DATABASE_URL`, `SQL_SCHEMA_PATH` (default `infra/sql/001_schema.sql`), `RABBITMQ_URI`, `GRPC_ADDR` (default `:9094`), `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`, `GOOGLE_CLIENT_ID` (Google ID token verification), `JWT_*` (signing), `PUBLIC_GATEWAY_URL` (simulated reset email logs).
 
 ## RabbitMQ
 
-- `finance_payment_success` — bound to `payment.event.success` (same routing key as trip payment consumer); consumed by `finance-service`.
-- `audit_logs` — bound to `audit.event.write`; API Gateway publishes mutating requests; `user-auth-service` persists rows to `audit_logs`.
+- `finance_payment_success` — bound to `payment.event.success` (same routing key as trip payment consumer); consumed by `platform-service`.
+- `audit_logs` — bound to `audit.event.write`; API Gateway publishes mutating requests; `platform-service` persists rows to `audit_logs`.
 
 ## PostgreSQL
 
@@ -47,8 +45,7 @@ Schema: `infra/sql/001_schema.sql` in the repo (`users`, `password_reset_tokens`
 
 ## gRPC
 
-- `finance-service` — `FinanceService` on port **9094** (compose DNS `finance-service:9094`).
-- `user-auth-service` — `UserAuthService` on port **9095** (`user-auth-service:9095`).
+- `platform-service` — **one** gRPC server exposes both `FinanceService` and `UserAuthService` on port **9094** (compose DNS `platform-service:9094`). The gateway opens a single connection and uses both stubs.
 
 Install codegen plugins:
 

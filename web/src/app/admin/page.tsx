@@ -144,7 +144,7 @@ export default function AdminPage() {
         </section>
 
         <p className="text-xs text-slate-500">
-          Password reset tokens are logged by user-auth-service (simulated email). Gateway: {API_URL}
+          Password reset tokens are logged by platform-service (simulated email). Gateway: {API_URL}
         </p>
       </div>
     </div>
