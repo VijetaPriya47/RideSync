@@ -29,4 +29,7 @@ const (
 
 	// Payment commands (payment.cmd.*)
 	PaymentCmdCreateSession = "payment.cmd.create_session"
+
+	// Audit events (audit.event.*)
+	AuditEventWrite = "audit.event.write"
 )

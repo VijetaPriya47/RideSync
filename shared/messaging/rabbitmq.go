@@ -278,6 +278,22 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return err
 	}
 
+	if err := r.declareAndBindQueue(
+		FinancePaymentSuccessQueue,
+		[]string{contracts.PaymentEventSuccess},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
+	if err := r.declareAndBindQueue(
+		AuditLogsQueue,
+		[]string{contracts.AuditEventWrite},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -31,6 +31,57 @@ services:
     environment:
       - COLLECTOR_OTLP_ENABLED=true
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ridesync
+      POSTGRES_PASSWORD: ridesync
+      POSTGRES_DB: ridesync
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  finance-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/finance-service.Dockerfile
+    container_name: finance-service
+    environment:
+      - DATABASE_URL=postgres://ridesync:ridesync@postgres:5432/ridesync?sslmode=disable
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - GRPC_ADDR=:9094
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - ENVIRONMENT=development
+    depends_on:
+      - postgres
+      - rabbitmq
+      - jaeger
+
+  user-auth-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/user-auth-service.Dockerfile
+    container_name: user-auth-service
+    environment:
+      - DATABASE_URL=postgres://ridesync:ridesync@postgres:5432/ridesync?sslmode=disable
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - GRPC_ADDR=:9095
+      - JWT_SECRET=dev-insecure-change-me
+      - JWT_ISSUER=ridesync-auth
+      - JWT_AUDIENCE=ridesync-gateway
+      - SUPER_ADMIN_EMAIL=vijeta.admin@ridesync.com
+      - SUPER_ADMIN_PASSWORD=change-me
+      - GOOGLE_CLIENT_ID=
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - ENVIRONMENT=development
+      - PUBLIC_GATEWAY_URL=http://localhost:8081
+    depends_on:
+      - postgres
+      - rabbitmq
+      - jaeger
+
   api-gateway:
     build:
       context: .
@@ -43,9 +94,18 @@ services:
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
       - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - ENVIRONMENT=development
+      - TRIP_SERVICE_URL=trip-service:8080
+      - FINANCE_SERVICE_URL=finance-service:9094
+      - USER_AUTH_SERVICE_URL=user-auth-service:9095
+      - JWT_SECRET=dev-insecure-change-me
+      - JWT_ISSUER=ridesync-auth
+      - JWT_AUDIENCE=ridesync-gateway
     depends_on:
       - rabbitmq
       - jaeger
+      - finance-service
+      - user-auth-service
+      - trip-service
 
   trip-service:
     build:
@@ -111,3 +171,4 @@ services:
 
 volumes:
   mongodb_data:
+  postgres_data:

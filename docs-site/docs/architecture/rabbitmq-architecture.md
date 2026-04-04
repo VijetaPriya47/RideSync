@@ -141,6 +141,11 @@ The system relies on dedicated RabbitMQ queues to handle all events. Below is an
 10. **`notify_payment_session_created`**: Receives the async Stripe URL. Push into the rider's UI to redirect.
 11. **`payment_success`**: Handles validated incoming Stripe Webhooks to unlock the MongoDB status to "Payed".
 
+### Finance & audit (2 queues)
+
+12. **`finance_payment_success`**: Also bound to `payment.event.success`. Consumed by **finance-service** to append idempotent payment rows to PostgreSQL.
+13. **`audit_logs`**: Bound to `audit.event.write`. The **API Gateway** publishes small JSON payloads for mutating HTTP requests; **user-auth-service** writes them to the `audit_logs` table.
+
 ---
 
 ## 8. Reliability & TTL Strategy

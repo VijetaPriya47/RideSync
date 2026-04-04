@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package finance;
+
+option go_package = "shared/proto/finance;finance";
+
+service FinanceService {
+  rpc GetMyTransactions(GetMyTransactionsRequest) returns (GetMyTransactionsResponse);
+  rpc GetGlobalRevenue(GetGlobalRevenueRequest) returns (GetGlobalRevenueResponse);
+  rpc GetRegionalAnalytics(GetRegionalAnalyticsRequest) returns (GetRegionalAnalyticsResponse);
+  rpc GetCategoryInsights(GetCategoryInsightsRequest) returns (GetCategoryInsightsResponse);
+}
+
+message Transaction {
+  string id = 1;
+  string user_id = 2;
+  int64 amount_cents = 3;
+  string currency = 4;
+  string type = 5; // credit | debit
+  string region = 6;
+  string status = 7;
+  string source_trip_id = 8;
+  string created_at_rfc3339 = 9;
+}
+
+message GetMyTransactionsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+message GetMyTransactionsResponse {
+  repeated Transaction transactions = 1;
+}
+
+message GetGlobalRevenueRequest {
+  string from_rfc3339 = 1;
+  string to_rfc3339 = 2;
+}
+
+message RevenuePoint {
+  string period = 1;
+  int64 amount_cents = 2;
+}
+
+message GetGlobalRevenueResponse {
+  int64 total_cents = 1;
+  string currency = 2;
+  repeated RevenuePoint trend = 3;
+}
+
+message GetRegionalAnalyticsRequest {
+  string from_rfc3339 = 1;
+  string to_rfc3339 = 2;
+}
+
+message RegionTotal {
+  string region = 1;
+  int64 amount_cents = 2;
+  int32 transaction_count = 3;
+}
+
+message GetRegionalAnalyticsResponse {
+  repeated RegionTotal regions = 1;
+  string currency = 2;
+}
+
+message GetCategoryInsightsRequest {}
+
+message CategoryInsight {
+  string category = 1;
+  int64 amount_cents = 2;
+  int32 count = 3;
+}
+
+message GetCategoryInsightsResponse {
+  repeated CategoryInsight categories = 1;
+  string currency = 2;
+}

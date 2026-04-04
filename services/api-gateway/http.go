@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"ride-sharing/services/api-gateway/grpc_clients"
+	"ride-sharing/shared/authjwt"
 	"ride-sharing/shared/contracts"
 	"ride-sharing/shared/env"
 	"ride-sharing/shared/messaging"
@@ -40,6 +41,12 @@ func handleTripStart(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clie
 
 	defer r.Body.Close()
 
+	sub, _, _, ok := authFromRequest(r)
+	if !applyCanonicalUserID(&reqBody.UserID, sub, ok) {
+		writeJSONError(w, http.StatusForbidden, "user mismatch or missing identity")
+		return
+	}
+
 	trip, err := tripGRPC.Client.CreateTrip(ctx, reqBody.toProto())
 	if err != nil {
 		log.Printf("DEBUG: gRPC CreateTrip failed: %v", err)
@@ -69,9 +76,9 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_cl
 
 	defer r.Body.Close()
 
-	// validation
-	if reqBody.UserID == "" {
-		writeJSONError(w, http.StatusBadRequest, "user ID is required")
+	sub, _, _, ok := authFromRequest(r)
+	if !applyCanonicalUserID(&reqBody.UserID, sub, ok) {
+		writeJSONError(w, http.StatusForbidden, "user mismatch or missing identity")
 		return
 	}
 
@@ -103,8 +110,14 @@ func handleIncreaseTripFare(w http.ResponseWriter, r *http.Request, tripGRPC *gr
 	}
 	defer r.Body.Close()
 
-	if reqBody.TripID == "" || reqBody.UserID == "" || reqBody.TotalPriceInCents <= 0 {
-		writeJSONError(w, http.StatusBadRequest, "tripID, userID, and totalPriceInCents are required")
+	sub, _, _, ok := authFromRequest(r)
+	if !applyCanonicalUserID(&reqBody.UserID, sub, ok) {
+		writeJSONError(w, http.StatusForbidden, "user mismatch or missing identity")
+		return
+	}
+
+	if reqBody.TripID == "" || reqBody.TotalPriceInCents <= 0 {
+		writeJSONError(w, http.StatusBadRequest, "tripID and totalPriceInCents are required")
 		return
 	}
 
@@ -162,10 +175,21 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 			return
 		}
 
+		region := session.Metadata["region"]
+		if region == "" {
+			region = "unspecified"
+		}
+		cur := string(session.Currency)
+		if cur == "" {
+			cur = "usd"
+		}
 		payload := messaging.PaymentStatusUpdateData{
-			TripID:   session.Metadata["trip_id"],
-			UserID:   session.Metadata["user_id"],
-			DriverID: session.Metadata["driver_id"],
+			TripID:      session.Metadata["trip_id"],
+			UserID:      session.Metadata["user_id"],
+			DriverID:    session.Metadata["driver_id"],
+			AmountCents: session.AmountTotal,
+			Currency:    cur,
+			Region:      region,
 		}
 
 		payloadBytes, err := json.Marshal(payload)
@@ -279,6 +303,12 @@ func handleGetTripStatus(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_
 	t := protoResp.GetTrip()
 	if t == nil {
 		writeJSONError(w, http.StatusNotFound, "trip not found")
+		return
+	}
+
+	sub, role, _, ok := authFromRequest(r)
+	if ok && role == authjwt.RoleCustomer && t.GetUserID() != "" && t.GetUserID() != sub {
+		writeJSONError(w, http.StatusForbidden, "cannot access another user's trip")
 		return
 	}
 

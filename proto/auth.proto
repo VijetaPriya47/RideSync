@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "shared/proto/auth;auth";
+
+service UserAuthService {
+  rpc LoginLocal(LoginLocalRequest) returns (LoginLocalResponse);
+  rpc GoogleVerify(GoogleVerifyRequest) returns (GoogleVerifyResponse);
+  rpc RegisterBusiness(RegisterBusinessRequest) returns (RegisterBusinessResponse);
+  rpc RegisterAdmin(RegisterAdminRequest) returns (RegisterAdminResponse);
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
+  rpc InsertAuditLog(InsertAuditLogRequest) returns (InsertAuditLogResponse);
+}
+
+message LoginLocalRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message UserSummary {
+  string id = 1;
+  string email = 2;
+  string role = 3;
+}
+
+message LoginLocalResponse {
+  string jwt = 1;
+  UserSummary user = 2;
+}
+
+message GoogleVerifyRequest {
+  string id_token = 1;
+}
+
+message GoogleVerifyResponse {
+  string jwt = 1;
+  UserSummary user = 2;
+}
+
+message RegisterBusinessRequest {
+  string admin_user_id = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message RegisterBusinessResponse {
+  UserSummary user = 1;
+}
+
+message RegisterAdminRequest {
+  string admin_user_id = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message RegisterAdminResponse {
+  UserSummary user = 1;
+}
+
+message RequestPasswordResetRequest {
+  string email = 1;
+}
+
+message RequestPasswordResetResponse {}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {}
+
+message ListAuditLogsRequest {
+  int32 limit = 1;
+  string before_ts_rfc3339 = 2;
+}
+
+message AuditLogEntry {
+  string id = 1;
+  string ts_rfc3339 = 2;
+  string method = 3;
+  string path = 4;
+  string actor_user_id = 5;
+  string role = 6;
+  string ip = 7;
+  string detail_json = 8;
+}
+
+message ListAuditLogsResponse {
+  repeated AuditLogEntry entries = 1;
+}
+
+message InsertAuditLogRequest {
+  string method = 1;
+  string path = 2;
+  string actor_user_id = 3;
+  string role = 4;
+  string ip = 5;
+  string detail_json = 6;
+}
+
+message InsertAuditLogResponse {}

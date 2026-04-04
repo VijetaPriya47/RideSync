@@ -15,6 +15,8 @@ const (
 	PaymentTripResponseQueue         = "payment_trip_response"
 	NotifyPaymentSessionCreatedQueue = "notify_payment_session_created"
 	NotifyPaymentSuccessQueue        = "payment_success"
+	FinancePaymentSuccessQueue       = "finance_payment_success"
+	AuditLogsQueue                   = "audit_logs"
 	DeadLetterQueue                  = "dead_letter_queue"
 	SearchRetryQueue                 = "search_retry_queue"
 )
@@ -52,7 +54,21 @@ type PaymentTripResponseData struct {
 }
 
 type PaymentStatusUpdateData struct {
-	TripID   string `json:"tripID"`
-	UserID   string `json:"userID"`
-	DriverID string `json:"driverID"`
+	TripID      string `json:"tripID"`
+	UserID      string `json:"userID"`
+	DriverID    string `json:"driverID"`
+	AmountCents int64  `json:"amountCents,omitempty"`
+	Currency    string `json:"currency,omitempty"`
+	Region      string `json:"region,omitempty"`
+}
+
+// AuditLogPayload is published by the API gateway for state-changing requests (JSON body of AmqpMessage.Data).
+type AuditLogPayload struct {
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	ActorUserID string `json:"actorUserId,omitempty"`
+	Role        string `json:"role,omitempty"`
+	IP          string `json:"ip,omitempty"`
+	TS          string `json:"ts"`
+	StatusCode  int    `json:"statusCode,omitempty"`
 }
