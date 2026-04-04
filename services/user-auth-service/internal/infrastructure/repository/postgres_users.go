@@ -1,4 +1,4 @@
-package repo
+package repository
 
 import (
 	"context"
@@ -13,23 +13,24 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	pb "ride-sharing/shared/proto/auth"
+	"ride-sharing/services/user-auth-service/internal/domain"
 	"ride-sharing/shared/authjwt"
+	pb "ride-sharing/shared/proto/auth"
 )
 
-type Repo struct {
+// PostgresUserRepository implements domain.UserRepository.
+type PostgresUserRepository struct {
 	Pool *pgxpool.Pool
 }
 
-type User struct {
-	ID           string
-	Email        string
-	Role         string
-	PasswordHash *string
-	GoogleSub    *string
+var _ domain.UserRepository = (*PostgresUserRepository)(nil)
+
+// NewPostgresUserRepository creates a PostgreSQL-backed user repository.
+func NewPostgresUserRepository(pool *pgxpool.Pool) *PostgresUserRepository {
+	return &PostgresUserRepository{Pool: pool}
 }
 
-func (r *Repo) EnsureSuperAdmin(ctx context.Context, email, plainPassword string) error {
+func (r *PostgresUserRepository) EnsureSuperAdmin(ctx context.Context, email, plainPassword string) error {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" || plainPassword == "" {
 		return nil
@@ -48,8 +49,8 @@ INSERT INTO users (email, password_hash, role) VALUES ($1, $2, 'admin')`, email,
 	return err
 }
 
-func (r *Repo) GetUserByID(ctx context.Context, id string) (*User, error) {
-	var u User
+func (r *PostgresUserRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+	var u domain.User
 	var gh, pw *string
 	err := r.Pool.QueryRow(ctx, `
 SELECT id::text, email, role, password_hash, google_sub FROM users WHERE id = $1::uuid`, id).
@@ -65,9 +66,9 @@ SELECT id::text, email, role, password_hash, google_sub FROM users WHERE id = $1
 	return &u, nil
 }
 
-func (r *Repo) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+func (r *PostgresUserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	var u User
+	var u domain.User
 	var gh, pw *string
 	err := r.Pool.QueryRow(ctx, `
 SELECT id::text, email, role, password_hash, google_sub FROM users WHERE lower(email) = $1`, email).
@@ -83,7 +84,7 @@ SELECT id::text, email, role, password_hash, google_sub FROM users WHERE lower(e
 	return &u, nil
 }
 
-func (r *Repo) CreateLocalUser(ctx context.Context, email, plainPassword, role string) (*User, error) {
+func (r *PostgresUserRepository) CreateLocalUser(ctx context.Context, email, plainPassword, role string) (*domain.User, error) {
 	if role != authjwt.RoleBusiness && role != authjwt.RoleAdmin {
 		return nil, fmt.Errorf("invalid role")
 	}
@@ -98,15 +99,15 @@ INSERT INTO users (id, email, password_hash, role) VALUES ($1, $2, $3, $4)`, id,
 	if err != nil {
 		return nil, err
 	}
-	return &User{ID: id.String(), Email: email, Role: role}, nil
+	return &domain.User{ID: id.String(), Email: email, Role: role}, nil
 }
 
-func (r *Repo) UpsertGoogleCustomer(ctx context.Context, googleSub, email string) (*User, error) {
+func (r *PostgresUserRepository) UpsertGoogleCustomer(ctx context.Context, googleSub, email string) (*domain.User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if googleSub == "" || email == "" {
 		return nil, fmt.Errorf("missing claims")
 	}
-	var u User
+	var u domain.User
 	err := r.Pool.QueryRow(ctx, `
 SELECT id::text, email, role FROM users WHERE google_sub = $1`, googleSub).Scan(&u.ID, &u.Email, &u.Role)
 	if err == nil {
@@ -122,7 +123,7 @@ SELECT id::text, email, role, google_sub FROM users WHERE lower(email) = $1`, em
 		Scan(&existingID, &existingEmail, &existingRole, &existingSub)
 	if err == nil {
 		if existingSub != nil && *existingSub == googleSub {
-			return &User{ID: existingID, Email: existingEmail, Role: existingRole}, nil
+			return &domain.User{ID: existingID, Email: existingEmail, Role: existingRole}, nil
 		}
 		return nil, fmt.Errorf("email already registered with a different login method")
 	}
@@ -135,10 +136,10 @@ INSERT INTO users (id, email, role, google_sub) VALUES ($1, $2, 'customer', $3)`
 	if err != nil {
 		return nil, err
 	}
-	return &User{ID: id.String(), Email: email, Role: authjwt.RoleCustomer}, nil
+	return &domain.User{ID: id.String(), Email: email, Role: authjwt.RoleCustomer}, nil
 }
 
-func (r *Repo) InsertAuditLog(ctx context.Context, method, path, actorID, role, ip, detailJSON string) error {
+func (r *PostgresUserRepository) InsertAuditLog(ctx context.Context, method, path, actorID, role, ip, detailJSON string) error {
 	if detailJSON == "" {
 		detailJSON = "{}"
 	}
@@ -153,7 +154,7 @@ VALUES ($1, $2, NULLIF($3,''), NULLIF($4,''), NULLIF($5,''), $6::jsonb)`,
 	return err
 }
 
-func (r *Repo) ListAuditLogs(ctx context.Context, limit int32, before *time.Time) ([]*pb.AuditLogEntry, error) {
+func (r *PostgresUserRepository) ListAuditLogs(ctx context.Context, limit int32, before *time.Time) ([]*pb.AuditLogEntry, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -185,7 +186,7 @@ FROM audit_logs ORDER BY ts DESC LIMIT $1`, limit)
 	return out, rows.Err()
 }
 
-func (r *Repo) CreatePasswordResetToken(ctx context.Context, userID string) (rawToken string, err error) {
+func (r *PostgresUserRepository) CreatePasswordResetToken(ctx context.Context, userID string) (rawToken string, err error) {
 	raw := uuid.New().String() + uuid.New().String()
 	h := sha256.Sum256([]byte(raw))
 	tokenHash := hex.EncodeToString(h[:])
@@ -199,7 +200,7 @@ INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1::
 	return raw, nil
 }
 
-func (r *Repo) ResetPasswordWithToken(ctx context.Context, rawToken, newPassword string) error {
+func (r *PostgresUserRepository) ResetPasswordWithToken(ctx context.Context, rawToken, newPassword string) error {
 	h := sha256.Sum256([]byte(rawToken))
 	tokenHash := hex.EncodeToString(h[:])
 	var userID string

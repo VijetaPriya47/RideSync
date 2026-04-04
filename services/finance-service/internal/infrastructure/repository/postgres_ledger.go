@@ -1,4 +1,4 @@
-package repo
+package repository
 
 import (
 	"context"
@@ -7,15 +7,24 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"ride-sharing/services/finance-service/internal/domain"
 	pb "ride-sharing/shared/proto/finance"
 )
 
-type Repo struct {
+// PostgresLedger implements domain.LedgerRepository.
+type PostgresLedger struct {
 	Pool *pgxpool.Pool
 }
 
+var _ domain.LedgerRepository = (*PostgresLedger)(nil)
+
+// NewPostgresLedger creates a PostgreSQL-backed ledger repository.
+func NewPostgresLedger(pool *pgxpool.Pool) *PostgresLedger {
+	return &PostgresLedger{Pool: pool}
+}
+
 // InsertPaymentDebit idempotently records a rider payment (one row per trip_id).
-func (r *Repo) InsertPaymentDebit(ctx context.Context, userID string, amountCents int64, currency, region, tripID string) error {
+func (r *PostgresLedger) InsertPaymentDebit(ctx context.Context, userID string, amountCents int64, currency, region, tripID string) error {
 	if tripID == "" || userID == "" {
 		return nil
 	}
@@ -34,7 +43,7 @@ WHERE NOT EXISTS (SELECT 1 FROM transactions t WHERE t.source_trip_id = $6)
 	return err
 }
 
-func (r *Repo) ListByUser(ctx context.Context, userID string, limit int32) ([]*pb.Transaction, error) {
+func (r *PostgresLedger) ListByUser(ctx context.Context, userID string, limit int32) ([]*pb.Transaction, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -59,7 +68,7 @@ FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2
 	return out, rows.Err()
 }
 
-func (r *Repo) GlobalRevenue(ctx context.Context, from, to *time.Time) (total int64, currency string, trend []*pb.RevenuePoint, err error) {
+func (r *PostgresLedger) GlobalRevenue(ctx context.Context, from, to *time.Time) (total int64, currency string, trend []*pb.RevenuePoint, err error) {
 	currency = "usd"
 	q := `SELECT COALESCE(SUM(amount_cents),0) FROM transactions WHERE 1=1`
 	args := []any{}
@@ -102,7 +111,7 @@ FROM transactions WHERE 1=1`
 	return total, currency, trend, trows.Err()
 }
 
-func (r *Repo) RegionalAnalytics(ctx context.Context, from, to *time.Time) ([]*pb.RegionTotal, string, error) {
+func (r *PostgresLedger) RegionalAnalytics(ctx context.Context, from, to *time.Time) ([]*pb.RegionTotal, string, error) {
 	cur := "usd"
 	q := `SELECT region, COALESCE(SUM(amount_cents),0), COUNT(*)::int FROM transactions WHERE 1=1`
 	args := []any{}
@@ -131,7 +140,7 @@ func (r *Repo) RegionalAnalytics(ctx context.Context, from, to *time.Time) ([]*p
 	return out, cur, rows.Err()
 }
 
-func (r *Repo) CategoryInsights(ctx context.Context) ([]*pb.CategoryInsight, string, error) {
+func (r *PostgresLedger) CategoryInsights(ctx context.Context) ([]*pb.CategoryInsight, string, error) {
 	cur := "usd"
 	rows, err := r.Pool.Query(ctx, `
 SELECT type, COALESCE(SUM(amount_cents),0), COUNT(*)::int FROM transactions GROUP BY type ORDER BY SUM(amount_cents) DESC`)
