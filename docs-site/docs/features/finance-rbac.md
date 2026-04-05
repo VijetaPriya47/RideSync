@@ -11,7 +11,7 @@ RideSync adds a non-destructive finance ledger, user authentication with three r
 
 | Role | Auth | Trip APIs | Finance |
 |------|------|-----------|---------|
-| `customer` | Google ID token (`POST /api/auth/google`) | `/trip/*`, `POST /api/trips/book` | `GET /api/finance/me` only |
+| `customer` | Google ID token (`POST /api/auth/google`) | `/trip/*`, `POST /api/trips/book` | `GET /api/finance/me` (ledger), `GET /api/trips/history` (ride history) |
 | `business` | Email/password (`POST /api/auth/login`) | Denied | `GET /api/finance/dashboard/*` |
 | `admin` | Email/password | Denied | Dashboard + `GET /api/admin/system-logs` + user provisioning |
 
@@ -21,7 +21,8 @@ RideSync adds a non-destructive finance ledger, user authentication with three r
 
 **Authenticated:** All other routes require `Authorization: Bearer <jwt>`.
 
-- `GET /api/finance/me` — customer; lists ledger rows from `platform-service` (`FinanceService` gRPC).
+- `GET /api/finance/me` — customer; lists payment ledger rows from `platform-service` (`FinanceService` gRPC).
+- `GET /api/trips/history` — customer; lists MongoDB trips where the user is the **rider** (`userID`) or **assigned driver** (`driver.id`), newest first (`TripService.ListMyTrips` gRPC). The web **Ride history** page (`/finance/me`) uses this endpoint.
 - `GET /api/finance/dashboard/revenue|regions|categories` — business or admin; query params `from`, `to` (RFC3339) where supported.
 - `GET /api/admin/system-logs` — admin; query `limit`, `before` (RFC3339).
 - `POST /api/admin/users/business`, `POST /api/admin/users/admin` — admin only.

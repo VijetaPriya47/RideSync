@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"slices"
 	"ride-sharing/services/trip-service/internal/domain"
 	pbd "ride-sharing/shared/proto/driver"
 )
@@ -93,4 +94,29 @@ func (r *inmemRepository) UpdateRideFareSeats(ctx context.Context, fareID string
 	}
 	f.RequestedSeats = seats
 	return nil
+}
+
+func (r *inmemRepository) ListTripsForUser(ctx context.Context, userID string, limit int32) ([]*domain.TripModel, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	var matched []*domain.TripModel
+	for _, t := range r.trips {
+		if t.UserID == userID || (t.Driver != nil && t.Driver.ID == userID) {
+			matched = append(matched, t)
+		}
+	}
+	slices.SortFunc(matched, func(a, b *domain.TripModel) int {
+		if a.ID.Timestamp().After(b.ID.Timestamp()) {
+			return -1
+		}
+		if a.ID.Timestamp().Before(b.ID.Timestamp()) {
+			return 1
+		}
+		return 0
+	})
+	if int32(len(matched)) > limit {
+		matched = matched[:limit]
+	}
+	return matched, nil
 }

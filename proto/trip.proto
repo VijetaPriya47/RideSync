@@ -10,6 +10,7 @@ service TripService {
   rpc IncreaseTripFare(IncreaseTripFareRequest) returns (IncreaseTripFareResponse);
   rpc GetTrip(GetTripRequest) returns (GetTripResponse);
   rpc UpdateFareSeats(UpdateFareSeatsRequest) returns (UpdateFareSeatsResponse);
+  rpc ListMyTrips(ListMyTripsRequest) returns (ListMyTripsResponse);
 }
 
 message PreviewTripRequest {
@@ -98,3 +99,25 @@ message UpdateFareSeatsRequest {
 }
 
 message UpdateFareSeatsResponse {}
+
+message ListMyTripsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+// Slim row for ride history (no full route geometry).
+message RideHistoryEntry {
+  string trip_id = 1;
+  // "rider" if user booked the trip; "driver" if user accepted as driver.
+  string role = 2;
+  string status = 3;
+  string when_rfc3339 = 4;
+  double fare_total_cents = 5;
+  string package_slug = 6;
+  // e.g. driver name when role is rider; short label when role is driver.
+  string other_party_label = 7;
+}
+
+message ListMyTripsResponse {
+  repeated RideHistoryEntry entries = 1;
+}

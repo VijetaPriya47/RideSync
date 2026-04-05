@@ -227,6 +227,10 @@ func (s *service) GetTripByID(ctx context.Context, id string) (*domain.TripModel
 	return s.repo.GetTripByID(ctx, id)
 }
 
+func (s *service) ListMyTrips(ctx context.Context, userID string, limit int32) ([]*domain.TripModel, error) {
+	return s.repo.ListTripsForUser(ctx, userID, limit)
+}
+
 func (s *service) UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error {
 	return s.repo.UpdateRideFareSeats(ctx, fareID, seats)
 }

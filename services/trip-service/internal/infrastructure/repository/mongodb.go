@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type mongoRepository struct {
@@ -169,4 +170,29 @@ func (r *mongoRepository) UpdateRideFareSeats(ctx context.Context, fareID string
 		return fmt.Errorf("ride fare not found: %s", fareID)
 	}
 	return nil
+}
+
+func (r *mongoRepository) ListTripsForUser(ctx context.Context, userID string, limit int32) ([]*domain.TripModel, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	filter := bson.M{"$or": []bson.M{
+		{"userID": userID},
+		{"driver.id": userID},
+	}}
+	opts := options.Find().SetSort(bson.D{{Key: "_id", Value: -1}}).SetLimit(int64(limit))
+	cur, err := r.db.Collection(db.TripsCollection).Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	var out []*domain.TripModel
+	for cur.Next(ctx) {
+		var t domain.TripModel
+		if err := cur.Decode(&t); err != nil {
+			return nil, err
+		}
+		out = append(out, &t)
+	}
+	return out, cur.Err()
 }

@@ -107,7 +107,7 @@ function HomeContent() {
                   <span className="text-xs text-gray-500 truncate max-w-[200px]">{session.user.email}</span>
                   <span className="text-xs rounded-full bg-gray-100 px-2 py-0.5">{session.user.role}</span>
                   {session.user.role === "customer" && (
-                    <Link href="/finance/me" className="text-primary hover:underline">Transactions</Link>
+                    <Link href="/finance/me" className="text-primary hover:underline">Ride history</Link>
                   )}
                   {(session.user.role === "business" || session.user.role === "admin") && (
                     <Link href="/dashboard" className="text-primary hover:underline">Dashboard</Link>

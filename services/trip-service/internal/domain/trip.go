@@ -58,6 +58,8 @@ type TripRepository interface {
 	UpdateRideFareTotal(ctx context.Context, fareID string, totalPriceInCents float64) error
 	UpdateTripRideFareTotal(ctx context.Context, tripID string, totalPriceInCents float64) error
 	UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error
+	// ListTripsForUser returns trips where the user is the rider (userID) or assigned driver (driver.id), newest first.
+	ListTripsForUser(ctx context.Context, userID string, limit int32) ([]*TripModel, error)
 }
 
 type TripService interface {
@@ -76,4 +78,5 @@ type TripService interface {
 	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
 	IncreaseTripFare(ctx context.Context, tripID, userID string, totalPriceInCents float64) (*TripModel, error)
 	UpdateRideFareSeats(ctx context.Context, fareID string, seats int32) error
+	ListMyTrips(ctx context.Context, userID string, limit int32) ([]*TripModel, error)
 }

@@ -91,6 +91,9 @@ func main() {
 	mux.HandleFunc("/api/finance/me", func(w http.ResponseWriter, r *http.Request) {
 		handleFinanceMe(w, r, platformGRPC.Finance)
 	})
+	mux.HandleFunc("/api/trips/history", func(w http.ResponseWriter, r *http.Request) {
+		handleTripHistory(w, r, tripGRPC)
+	})
 	mux.HandleFunc("/api/finance/dashboard/revenue", func(w http.ResponseWriter, r *http.Request) {
 		handleFinanceDashboardRevenue(w, r, platformGRPC.Finance)
 	})

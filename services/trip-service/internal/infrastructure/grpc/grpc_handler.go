@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"log"
+	"strings"
 	"ride-sharing/services/trip-service/internal/domain"
 	"ride-sharing/services/trip-service/internal/infrastructure/events"
 	pb "ride-sharing/shared/proto/trip"
@@ -137,4 +138,24 @@ func (h *gRPCHandler) UpdateFareSeats(ctx context.Context, req *pb.UpdateFareSea
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 	return &pb.UpdateFareSeatsResponse{}, nil
+}
+
+func (h *gRPCHandler) ListMyTrips(ctx context.Context, req *pb.ListMyTripsRequest) (*pb.ListMyTripsResponse, error) {
+	uid := strings.TrimSpace(req.GetUserId())
+	if uid == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id required")
+	}
+	limit := req.GetLimit()
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	trips, err := h.service.ListMyTrips(ctx, uid, limit)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%v", err)
+	}
+	var entries []*pb.RideHistoryEntry
+	for _, t := range trips {
+		entries = append(entries, tripModelToHistoryEntry(t, uid))
+	}
+	return &pb.ListMyTripsResponse{Entries: entries}, nil
 }
