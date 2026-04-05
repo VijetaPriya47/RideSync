@@ -129,7 +129,12 @@ kubectl get svc api-gateway
 
 ## 6. Frontend Deployment (Vercel)
 
-For the frontend, deploy the `web/` directory to Vercel. Ensure you set the environment variables in the Vercel dashboard as identified in `.env.local`:
+The repository root has no app `package.json` by default—the Next.js app is under **`web/`**. If Vercel is connected to the **whole repo** and you see `ENOENT ... package.json` at `/vercel/path0`, use either:
+
+1. **Recommended:** In the Vercel project, open **Settings → General → Root Directory** and set it to **`web`**, then redeploy; or  
+2. Rely on the **root `package.json`** in this repo: it runs `npm install` at the root (no deps) and `npm run build`, which runs `npm ci` and `next build` under `web/`.
+
+Set environment variables in the Vercel dashboard (see `web/.env.local` for local names):
 - `NEXT_PUBLIC_API_URL`: `http://<EXTERNAL-IP-OF-API-GATEWAY>:8081`
 - `NEXT_PUBLIC_WEBSOCKET_URL`: `ws://<EXTERNAL-IP-OF-API-GATEWAY>:8081/ws`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Your Stripe Public Key

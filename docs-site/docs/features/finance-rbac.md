@@ -30,9 +30,16 @@ Trip `userID` in JSON is ignored for identity: the gateway overwrites it with th
 
 ## Environment variables
 
-**API Gateway:** `JWT_SECRET`, `JWT_ISSUER` (default `ridesync-auth`), `JWT_AUDIENCE` (default `ridesync-gateway`), `PLATFORM_SERVICE_URL` (preferred; single gRPC endpoint for finance + auth). For backward compatibility, `FINANCE_SERVICE_URL` or `USER_AUTH_SERVICE_URL` are used if `PLATFORM_SERVICE_URL` is unset. Also `TRIP_SERVICE_URL`, `RABBITMQ_URI`.
+**API Gateway:** `JWT_SECRET`, `JWT_ISSUER` (default `ridesync-auth`), `JWT_AUDIENCE` (default `ridesync-gateway`), `PLATFORM_SERVICE_URL` (preferred; single gRPC endpoint for finance + auth). For backward compatibility, `FINANCE_SERVICE_URL` or `USER_AUTH_SERVICE_URL` are used if `PLATFORM_SERVICE_URL` is unset. Also `TRIP_SERVICE_URL`, `RABBITMQ_URI`. **Do not set `GOOGLE_CLIENT_ID` on the gateway**—it does not verify Google tokens; it only proxies `POST /api/auth/google` to **platform-service** over gRPC.
 
-**platform-service** (combined finance ledger + user auth + audit): `DATABASE_URL`, `SQL_SCHEMA_PATH` (default `infra/sql/001_schema.sql`), `RABBITMQ_URI`, `GRPC_ADDR` (default `:9094`), `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`, `GOOGLE_CLIENT_ID` (Google ID token verification), `JWT_*` (signing), `PUBLIC_GATEWAY_URL` (simulated reset email logs).
+**platform-service** (combined finance ledger + user auth + audit): `DATABASE_URL`, `RABBITMQ_URI`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`, **`GOOGLE_CLIENT_ID`** (required server-side for `idtoken.Validate`; must be the **same Web client ID** as `NEXT_PUBLIC_GOOGLE_CLIENT_ID` on the web app), `JWT_*` (signing), `PUBLIC_GATEWAY_URL` (simulated reset email logs).
+
+**Listen address:** If `GRPC_ADDR` is set, it is used (e.g. `:9094` for Docker Compose). If unset and **`PORT`** is set (Railway, Render, Fly), the server listens on **`:{PORT}`**. Otherwise default is **`:9094`**. Point the API gateway at the same host and port the platform exposes (on Railway, use the service’s **private** hostname and port, often the same as `PORT`).
+
+**`SQL_SCHEMA_PATH` (important):**
+
+- **Docker image** (`infra/production/docker/platform-service.Dockerfile`): the schema file is copied to **`/root/001_schema.sql`** and the image sets `ENV SQL_SCHEMA_PATH=/root/001_schema.sql`. On Railway, Render, etc., **do not** set `SQL_SCHEMA_PATH` to `infra/sql/001_schema.sql`—that path exists only in the Git repo, not inside the container. Either **omit** `SQL_SCHEMA_PATH` (use the image default) or set it explicitly to **`/root/001_schema.sql`**.
+- **Local / monorepo run from repo root** (no Docker): default is `infra/sql/001_schema.sql`; override only if you keep the file elsewhere.
 
 ## RabbitMQ
 

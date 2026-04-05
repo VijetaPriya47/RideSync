@@ -1,0 +1,10 @@
+{
+  "name": "ridesync-monorepo",
+  "private": true,
+  "description": "Root package for Vercel/Git CI: the Next.js app lives in web/. Default npm install succeeds here; build installs and builds web/.",
+  "scripts": {
+    "build": "npm ci --prefix web && npm run build --prefix web",
+    "dev": "npm run dev --prefix web",
+    "lint": "npm run lint --prefix web"
+  }
+}

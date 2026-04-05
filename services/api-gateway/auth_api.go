@@ -6,8 +6,11 @@ import (
 	"net/http"
 
 	"ride-sharing/services/api-gateway/grpc_clients"
-	pb "ride-sharing/shared/proto/auth"
 	"ride-sharing/shared/contracts"
+	pb "ride-sharing/shared/proto/auth"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func handleAuthLogin(w http.ResponseWriter, r *http.Request, auth *grpc_clients.UserAuthServiceClient) {
@@ -52,7 +55,26 @@ func handleAuthGoogle(w http.ResponseWriter, r *http.Request, auth *grpc_clients
 	defer r.Body.Close()
 	resp, err := auth.Client.GoogleVerify(context.Background(), &pb.GoogleVerifyRequest{IdToken: body.IDToken})
 	if err != nil {
-		writeJSONError(w, http.StatusUnauthorized, "google verify failed")
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.FailedPrecondition:
+				writeJSONError(w, http.StatusServiceUnavailable, st.Message())
+				return
+			case codes.Unauthenticated:
+				writeJSONError(w, http.StatusUnauthorized, st.Message())
+				return
+			case codes.PermissionDenied:
+				writeJSONError(w, http.StatusForbidden, st.Message())
+				return
+			case codes.Internal:
+				writeJSONError(w, http.StatusInternalServerError, "google verify failed")
+				return
+			default:
+				writeJSONError(w, http.StatusBadGateway, st.Message())
+				return
+			}
+		}
+		writeJSONError(w, http.StatusBadGateway, "google verify failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: map[string]any{

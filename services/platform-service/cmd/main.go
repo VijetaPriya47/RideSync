@@ -79,7 +79,14 @@ func main() {
 		log.Fatalf("Failed to start audit consumer: %v", err)
 	}
 
-	grpcAddr := env.GetString("GRPC_ADDR", ":9094")
+	grpcAddr := env.GetString("GRPC_ADDR", "")
+	if grpcAddr == "" {
+		if p := os.Getenv("PORT"); p != "" {
+			grpcAddr = ":" + p
+		} else {
+			grpcAddr = ":9094"
+		}
+	}
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		log.Fatalf("Failed to listen for gRPC: %v", err)
