@@ -177,7 +177,6 @@ export default function RiderMap({ userId, onRouteSelected }: RiderMapProps) {
 
     const requestRidePreview = async (req: RequestRideProps) => {
         const payload = {
-            userID,
             pickup: {
                 latitude: req.pickup[0],
                 longitude: req.pickup[1],
@@ -225,7 +224,6 @@ export default function RiderMap({ userId, onRouteSelected }: RiderMapProps) {
         setSelectedCarPackage(fare)
         const payload = {
             rideFareID: fare.id,
-            userID: userID,
         } as HTTPTripStartRequestPayload
 
         const response = await apiFetch(BackendEndpoints.START_TRIP, {
@@ -269,7 +267,7 @@ export default function RiderMap({ userId, onRouteSelected }: RiderMapProps) {
         }
 
         const newPrice = selectedCarPackage.totalPriceInCents * (1 + percentage / 100);
-        const payload = { tripID: trip.tripID, userID: userID, totalPriceInCents: newPrice };
+        const payload = { tripID: trip.tripID, totalPriceInCents: newPrice };
         const response = await apiFetch(BackendEndpoints.INCREASE_TRIP_FARE, {
             method: 'POST',
             body: JSON.stringify(payload),

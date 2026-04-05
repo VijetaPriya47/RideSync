@@ -95,11 +95,13 @@ export interface HTTPTripPreviewResponse {
 
 export interface HTTPTripStartRequestPayload {
   rideFareID: string;
-  userID: string;
+  /** Omit so the gateway sets user id from the JWT (avoids stale localStorage mismatch). */
+  userID?: string;
 }
 
 export interface HTTPTripPreviewRequestPayload {
-  userID: string;
+  /** Omit so the gateway sets user id from the JWT (avoids stale localStorage mismatch). */
+  userID?: string;
   pickup: Coordinate;
   destination: Coordinate;
   /** Seats for carpool-style fares; defaults to 1 if omitted */
