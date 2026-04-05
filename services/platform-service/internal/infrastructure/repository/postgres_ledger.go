@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log"
 	"strconv"
 	"time"
 
@@ -26,6 +27,7 @@ func NewPostgresLedger(pool *pgxpool.Pool) *PostgresLedger {
 // InsertPaymentDebit idempotently records a rider payment (one row per trip_id).
 func (r *PostgresLedger) InsertPaymentDebit(ctx context.Context, userID string, amountCents int64, currency, region, tripID string) error {
 	if tripID == "" || userID == "" {
+		log.Printf("ledger: InsertPaymentDebit skipped (empty tripID or userID); no transaction row written")
 		return nil
 	}
 	if currency == "" {
