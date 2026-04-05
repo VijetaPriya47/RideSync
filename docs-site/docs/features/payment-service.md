@@ -100,8 +100,6 @@ case "checkout.session.completed":
 > [!NOTE]
 > The Trip Service never trusts the end-user device for payment confirmation. The only source of truth is Stripe's cryptographically signed webhook, rehydrated with our own metadata.
 
-**Rider transaction history (`GET /api/finance/me`)** is written by **platform-service** when it consumes the same `PaymentEventSuccess` message and inserts into Postgres. If `trip_id` or `user_id` is missing on the Checkout Session metadata, the gateway does **not** publish that event (and logs a clear reason). Common causes: **`STRIPE_WEBHOOK_KEY` unset** on the gateway (webhook returns 503), Stripe Dashboard webhook URL not pointing at **`/webhook/stripe`**, or **mock Checkout session IDs** from payment-service when Stripe is disabled, errors out, or times out (those sessions never complete in Stripe).
-
 ---
 
 ## Reliability Note {#reliability-note}

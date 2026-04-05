@@ -35,10 +35,6 @@ func (c *paymentConsumer) Listen() error {
 			log.Printf("finance payment consumer: unmarshal payment: %v", err)
 			return err
 		}
-		if pay.TripID == "" || pay.UserID == "" {
-			log.Printf("finance payment consumer: drop message with empty tripID or userID (ledger insert would no-op)")
-			return nil
-		}
 		if err := c.service.InsertPaymentDebit(ctx, pay.UserID, pay.AmountCents, pay.Currency, pay.Region, pay.TripID); err != nil {
 			log.Printf("finance payment consumer: insert: %v", err)
 			return err

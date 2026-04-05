@@ -144,8 +144,7 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 
 	webhookKey := env.GetString("STRIPE_WEBHOOK_KEY", "")
 	if webhookKey == "" {
-		log.Printf("stripe webhook: STRIPE_WEBHOOK_KEY is not set; cannot verify or publish payment success")
-		http.Error(w, "Stripe webhook not configured", http.StatusServiceUnavailable)
+		log.Printf("Webhook key is required")
 		return
 	}
 
@@ -163,7 +162,7 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 		return
 	}
 
-	log.Printf("stripe webhook: received event type=%s id=%s", event.Type, event.ID)
+	log.Printf("Received Stripe event: %v", event)
 
 	switch event.Type {
 	case "checkout.session.completed":
@@ -176,20 +175,6 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 			return
 		}
 
-		tripID := session.Metadata["trip_id"]
-		userID := session.Metadata["user_id"]
-		if tripID == "" || userID == "" {
-			log.Printf("stripe webhook: checkout.session.completed session_id=%s missing trip_id or user_id in metadata (ledger and trip payed flow will not run). Ensure Checkout sessions are created by payment-service with trip_id, user_id, driver_id metadata — mock session IDs (cs_test_mock_*) never produce a real completed session.", session.ID)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("ok"))
-			return
-		}
-
-		if session.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid &&
-			session.PaymentStatus != stripe.CheckoutSessionPaymentStatusNoPaymentRequired {
-			log.Printf("stripe webhook: checkout.session.completed session_id=%s payment_status=%s (amount may be unset until paid)", session.ID, session.PaymentStatus)
-		}
-
 		region := session.Metadata["region"]
 		if region == "" {
 			region = "unspecified"
@@ -199,8 +184,8 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 			cur = "usd"
 		}
 		payload := messaging.PaymentStatusUpdateData{
-			TripID:      tripID,
-			UserID:      userID,
+			TripID:      session.Metadata["trip_id"],
+			UserID:      session.Metadata["user_id"],
 			DriverID:    session.Metadata["driver_id"],
 			AmountCents: session.AmountTotal,
 			Currency:    cur,
@@ -215,7 +200,7 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 		}
 
 		message := contracts.AmqpMessage{
-			OwnerID: userID,
+			OwnerID: session.Metadata["user_id"],
 			Data:    payloadBytes,
 		}
 
@@ -228,14 +213,7 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 			http.Error(w, "Failed to publish payment event", http.StatusInternalServerError)
 			return
 		}
-		log.Printf("stripe webhook: published payment.event.success for trip_id=%s user_id=%s amount_cents=%d", tripID, userID, session.AmountTotal)
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
 }
 
 func handleUpdateTripSeats(w http.ResponseWriter, r *http.Request, tripGRPC *grpc_clients.TripServiceClient) {
